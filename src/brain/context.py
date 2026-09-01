@@ -2,7 +2,7 @@
 CEREBRUM
 Sistema de contexto conversacional.
 
-v0.0.3 Alpha - Memory Seed
+v0.0.4 Alpha - Reasoning Core
 """
 
 from collections import Counter, deque
@@ -10,6 +10,52 @@ from collections import Counter, deque
 
 class Context:
     """Gestiona los mensajes recientes de una conversación."""
+
+    PALABRAS_IGNORADAS = {
+        "que",
+        "como",
+        "para",
+        "esta",
+        "este",
+        "esto",
+        "desde",
+        "porque",
+        "cuando",
+        "donde",
+        "quiero",
+        "mi",
+        "mis",
+        "me",
+        "muy",
+        "una",
+        "uno",
+        "las",
+        "los",
+        "del",
+        "con",
+        "por",
+        "sobre",
+        "estoy",
+        "estás",
+        "estamos",
+        "es",
+        "soy",
+        "si",
+        "entonces",
+        "analiza",
+        "analizar",
+        "compara",
+        "compara",
+        "recuerda",
+        "memoria",
+        "contexto",
+        "tema",
+        "muestra",
+        "muestra",
+        "muéstrame",
+        "mis",
+        "qué"
+    }
 
     def __init__(self, max_messages=10):
         self.max_messages = max_messages
@@ -55,18 +101,9 @@ class Context:
         )
 
     def tema_principal(self):
-        """Devuelve una palabra frecuente del contexto."""
+        """Devuelve la palabra relevante más frecuente."""
 
         palabras = []
-
-        ignorar = {
-            "que", "como", "para", "esta",
-            "este", "esto", "desde", "porque",
-            "cuando", "donde", "quiero", "mi",
-            "mis", "me", "muy", "una", "uno",
-            "las", "los", "del", "con", "por",
-            "sobre", "estoy", "es", "soy"
-        }
 
         for mensaje in self.messages:
             for palabra in mensaje.lower().split():
@@ -76,7 +113,7 @@ class Context:
 
                 if (
                     len(palabra) >= 4
-                    and palabra not in ignorar
+                    and palabra not in self.PALABRAS_IGNORADAS
                 ):
                     palabras.append(palabra)
 

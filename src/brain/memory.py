@@ -6,8 +6,20 @@ v0.0.3 Alpha - Memory Seed
 """
 
 import json
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
+
+
+class MemoryCorruptionError(RuntimeError):
+    """Indica que el archivo de memoria no se puede usar con seguridad."""
+
+    def __init__(self, file_path, reason):
+        super().__init__(
+            f"La memoria persistente está corrupta en "
+            f"'{file_path}': {reason}"
+        )
 
 
 class Memory:
@@ -30,16 +42,37 @@ class Memory:
             self._guardar_archivo([])
 
     def _guardar_archivo(self, memoria):
-        """Escribe la memoria en disco."""
+        """Escribe la memoria en disco mediante un reemplazo atómico."""
 
-        self.file_path.write_text(
-            json.dumps(
-                memoria,
-                indent=4,
-                ensure_ascii=False
-            ),
-            encoding="utf-8"
+        contenido = json.dumps(
+            memoria,
+            indent=4,
+            ensure_ascii=False
         )
+        archivo_temporal = None
+
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=self.file_path.parent,
+                prefix=f".{self.file_path.name}.",
+                suffix=".tmp",
+                delete=False
+            ) as temporal:
+                archivo_temporal = Path(temporal.name)
+                temporal.write(contenido)
+                temporal.flush()
+                os.fsync(temporal.fileno())
+
+            os.replace(archivo_temporal, self.file_path)
+
+        finally:
+            if (
+                archivo_temporal is not None
+                and archivo_temporal.exists()
+            ):
+                archivo_temporal.unlink()
 
     def _cargar_archivo(self):
         """Carga la memoria desde disco."""
@@ -49,15 +82,25 @@ class Memory:
                 encoding="utf-8"
             )
 
+        except FileNotFoundError:
+            return []
+
+        try:
             memoria = json.loads(contenido)
 
-            if isinstance(memoria, list):
-                return memoria
+        except json.JSONDecodeError as error:
+            raise MemoryCorruptionError(
+                self.file_path,
+                "el contenido no es JSON válido"
+            ) from error
 
-        except (json.JSONDecodeError, FileNotFoundError):
-            pass
+        if not isinstance(memoria, list):
+            raise MemoryCorruptionError(
+                self.file_path,
+                "el contenido debe ser una lista de recuerdos"
+            )
 
-        return []
+        return memoria
 
     def _siguiente_id(self, memoria):
         """Genera un ID único."""
