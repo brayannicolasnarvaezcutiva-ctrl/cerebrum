@@ -7,7 +7,7 @@ v0.0.4 Alpha - Reasoning Core
 
 from dataclasses import dataclass
 
-from brain.inference import InferenceEngine
+from .inference import InferenceEngine
 
 
 @dataclass
