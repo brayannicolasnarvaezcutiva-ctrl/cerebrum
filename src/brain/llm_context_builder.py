@@ -2,9 +2,10 @@
 CEREBRUM
 Constructor de contexto para el LLM.
 
-v0.0.6 Alpha - LLM Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
+from .intent import Intent
 from .llm_context import LLMContext
 from .llm_context_limits import LLMContextLimits
 
@@ -30,7 +31,8 @@ class LLMContextBuilder:
         memoria: list[str] | None = None,
         conocimiento: list[str] | None = None,
         razonamiento: list[str] | None = None,
-        conversacion: str = ""
+        conversacion: str = "",
+        intencion: Intent | None = None
     ) -> LLMContext:
         """Construye un contexto normalizado y limitado."""
 
@@ -66,15 +68,14 @@ class LLMContextBuilder:
                 f"Historial de conversación:\n{conversacion}"
             ] + razonamiento
 
-        contexto = LLMContext(
+        return LLMContext(
             mensaje=mensaje,
             memoria=memoria,
             conocimiento=conocimiento,
             razonamiento=razonamiento,
-            instrucciones=self.instrucciones
+            instrucciones=self.instrucciones,
+            intencion=intencion
         )
-
-        return contexto
 
     def construir_texto(
         self,
@@ -82,7 +83,8 @@ class LLMContextBuilder:
         memoria: list[str] | None = None,
         conocimiento: list[str] | None = None,
         razonamiento: list[str] | None = None,
-        conversacion: str = ""
+        conversacion: str = "",
+        intencion: Intent | None = None
     ) -> str:
         """Construye y limita directamente el texto de contexto."""
 
@@ -91,11 +93,10 @@ class LLMContextBuilder:
             memoria=memoria,
             conocimiento=conocimiento,
             razonamiento=razonamiento,
-            conversacion=conversacion
+            conversacion=conversacion,
+            intencion=intencion
         )
 
-        texto = contexto.construir()
-
         return self.limits.limitar_contexto(
-            texto
+            contexto.construir()
         )

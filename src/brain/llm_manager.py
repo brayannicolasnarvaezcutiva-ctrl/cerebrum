@@ -2,9 +2,10 @@
 CEREBRUM
 Administrador del sistema LLM.
 
-v0.0.6 Alpha - LLM Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
+from .intent import Intent
 from .llm import LLMResponse
 from .llm_config import LLMConfig
 from .llm_engine import LLMEngine
@@ -43,7 +44,8 @@ class LLMManager:
         mensaje: str,
         memoria: list[str] | None = None,
         conocimiento: list[str] | None = None,
-        razonamiento: list[str] | None = None
+        razonamiento: list[str] | None = None,
+        intencion: Intent | None = None
     ) -> LLMResponse:
         """Genera una respuesta usando el servicio activo."""
 
@@ -51,7 +53,8 @@ class LLMManager:
             mensaje=mensaje,
             memoria=memoria,
             conocimiento=conocimiento,
-            razonamiento=razonamiento
+            razonamiento=razonamiento,
+            intencion=intencion
         )
 
     def generar_texto(
@@ -59,7 +62,8 @@ class LLMManager:
         mensaje: str,
         memoria: list[str] | None = None,
         conocimiento: list[str] | None = None,
-        razonamiento: list[str] | None = None
+        razonamiento: list[str] | None = None,
+        intencion: Intent | None = None
     ) -> str:
         """Genera únicamente el texto de la respuesta."""
 
@@ -67,7 +71,8 @@ class LLMManager:
             mensaje=mensaje,
             memoria=memoria,
             conocimiento=conocimiento,
-            razonamiento=razonamiento
+            razonamiento=razonamiento,
+            intencion=intencion
         )
 
     def conversar(

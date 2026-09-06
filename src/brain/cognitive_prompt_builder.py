@@ -2,7 +2,7 @@
 CEREBRUM
 Constructor de prompts cognitivos.
 
-v0.0.6 Alpha - LLM Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
 from .llm_context import LLMContext
@@ -57,6 +57,16 @@ class CognitivePromptBuilder:
                 + instrucciones
             )
 
+        if contexto.intencion is not None:
+            partes.append(
+                "=== INTENCIÓN ===\n"
+                f"Tipo: {contexto.intencion.tipo}\n"
+                f"Acción: {contexto.intencion.accion}\n"
+                f"Tema: {contexto.intencion.tema}\n"
+                f"Prioridad: {contexto.intencion.prioridad}\n"
+                f"Confianza: {contexto.intencion.confianza:.2f}"
+            )
+
         if contexto.memoria:
             partes.append(
                 "=== MEMORIA RELEVANTE ===\n"
@@ -81,12 +91,23 @@ class CognitivePromptBuilder:
                 )
             )
 
-        partes.append(
-            "=== MENSAJE DEL USUARIO ===\n"
-            + contexto.mensaje.strip()
+        mensaje = (
+            contexto.mensaje.strip()
+            if isinstance(
+                contexto.mensaje,
+                str
+            )
+            else ""
         )
 
-        prompt = "\n\n".join(partes)
+        partes.append(
+            "=== MENSAJE DEL USUARIO ===\n"
+            + mensaje
+        )
+
+        prompt = "\n\n".join(
+            partes
+        )
 
         return self.limits.limitar_contexto(
             prompt

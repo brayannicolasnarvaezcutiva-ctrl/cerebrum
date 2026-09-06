@@ -1,13 +1,14 @@
 """
 CEREBRUM
-Coordinador del núcleo cognitivo con trazabilidad.
+Coordinador del núcleo cognitivo con trazabilidad e intención.
 
-v0.0.5 Alpha - Cognitive Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
 from .cognitive_result import CognitiveResult
 from .explained_knowledge_inference import ExplainedKnowledgeInference
 from .inference_explanation import InferenceExplanationBuilder
+from .intent_detector import IntentDetector
 from .knowledge import KnowledgeBase
 from .knowledge_extractor import KnowledgeExtractor
 from .knowledge_reasoner import KnowledgeReasoner
@@ -15,7 +16,7 @@ from .knowledge_trace import KnowledgeTrace
 
 
 class CognitiveEngine:
-    """Coordina conocimiento, inferencia, razonamiento y trazabilidad."""
+    """Coordina conocimiento, inferencia, razonamiento, trazabilidad e intención."""
 
     def __init__(self):
         self.knowledge_base = KnowledgeBase()
@@ -36,6 +37,10 @@ class CognitiveEngine:
 
         self.explainer = InferenceExplanationBuilder()
 
+        self.intent_detector = IntentDetector()
+
+        self.ultima_intencion = None
+
     def aprender(self, texto: str):
         """Extrae y almacena conocimiento desde una frase."""
 
@@ -46,7 +51,9 @@ class CognitiveEngine:
                 hecho
             )
 
-            self.trace.registrar(explicacion)
+            self.trace.registrar(
+                explicacion
+            )
 
         return hecho
 
@@ -70,7 +77,9 @@ class CognitiveEngine:
         explicaciones = self.inference.inferir_todo()
 
         for explicacion in explicaciones:
-            self.trace.registrar(explicacion)
+            self.trace.registrar(
+                explicacion
+            )
 
         return explicaciones
 
@@ -97,13 +106,37 @@ class CognitiveEngine:
             objeto=objeto
         )
 
-    def procesar(self, texto: str) -> CognitiveResult:
+    def detectar_intencion(
+        self,
+        texto: str
+    ):
+        """Detecta y guarda la intención de una entrada."""
+
+        intencion = self.intent_detector.detectar(
+            texto
+        )
+
+        self.ultima_intencion = intencion
+
+        return intencion
+
+    def obtener_ultima_intencion(self):
+        """Devuelve la última intención detectada."""
+
+        return self.ultima_intencion
+
+    def procesar(
+        self,
+        texto: str
+    ) -> CognitiveResult:
         """
         Ejecuta una operación cognitiva completa.
 
         Flujo:
 
             entrada
+              ↓
+            detección de intención
               ↓
             aprendizaje
               ↓
@@ -128,12 +161,20 @@ class CognitiveEngine:
                 confianza=0.0
             )
 
+        intencion = self.detectar_intencion(
+            texto
+        )
+
         hechos_aprendidos = []
 
-        hecho = self.aprender(texto)
+        hecho = self.aprender(
+            texto
+        )
 
         if hecho is not None:
-            hechos_aprendidos.append(hecho)
+            hechos_aprendidos.append(
+                hecho
+            )
 
         inferencias = self.inferir()
 
@@ -154,7 +195,9 @@ class CognitiveEngine:
                     f"{hecho.objeto}"
                 )
 
-        evidencia = list(dict.fromkeys(evidencia))
+        evidencia = list(
+            dict.fromkeys(evidencia)
+        )
 
         if hechos_aprendidos:
             confianza = max(
@@ -176,5 +219,6 @@ class CognitiveEngine:
             hechos_aprendidos=hechos_aprendidos,
             inferencias=inferencias,
             evidencia=evidencia,
-            confianza=confianza
+            confianza=confianza,
+            intencion=intencion
         )

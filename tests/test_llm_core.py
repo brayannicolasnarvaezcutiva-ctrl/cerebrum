@@ -1038,3 +1038,271 @@ def test_cerebrum_llm_flujo_completo():
         manager.obtener_sesion().cantidad_mensajes()
         == 4
     )
+def test_cognitive_context_retriever_recupera_conocimiento():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+    from src.brain.intent_detector import IntentDetector
+
+    cognitive = CognitiveEngine()
+
+    cognitive.knowledge_base.agregar(
+        "estrella",
+        "es",
+        "una esfera de plasma"
+    )
+
+    cognitive.knowledge_base.agregar(
+        "estrella",
+        "emite",
+        "luz"
+    )
+
+    cognitive.knowledge_base.agregar(
+        "marte",
+        "es",
+        "un planeta"
+    )
+
+    intencion = IntentDetector().detectar(
+        "¿Qué es una estrella?"
+    )
+
+    retriever = CognitiveContextRetriever(
+        cognitive
+    )
+
+    resultado = retriever.recuperar(
+        intencion
+    )
+
+    assert (
+        "estrella es una esfera de plasma"
+        in resultado["conocimiento"]
+    )
+
+    assert (
+        "estrella emite luz"
+        in resultado["conocimiento"]
+    )
+
+    assert (
+        "marte es un planeta"
+        not in resultado["conocimiento"]
+    )
+
+
+def test_cognitive_context_retriever_respeta_limite():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+    from src.brain.intent_detector import IntentDetector
+
+    cognitive = CognitiveEngine()
+
+    for i in range(5):
+        cognitive.knowledge_base.agregar(
+            "estrella",
+            "dato",
+            f"informacion {i}"
+        )
+
+    intencion = IntentDetector().detectar(
+        "¿Qué es una estrella?"
+    )
+
+    retriever = CognitiveContextRetriever(
+        cognitive,
+        limite=2
+    )
+
+    resultado = retriever.recuperar(
+        intencion
+    )
+
+    assert len(
+        resultado["conocimiento"]
+    ) == 2
+
+
+def test_cognitive_context_retriever_devuelve_estructura():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+
+    cognitive = CognitiveEngine()
+
+    retriever = CognitiveContextRetriever(
+        cognitive
+    )
+
+    resultado = retriever.recuperar(
+        None
+    )
+
+    assert set(resultado.keys()) == {
+        "memoria",
+        "conocimiento",
+        "razonamiento",
+        "conversacion"
+    }
+
+    assert resultado["memoria"] == []
+    assert resultado["conocimiento"] == []
+    assert resultado["razonamiento"] == []
+    assert resultado["conversacion"] == ""
+     
+def test_cognitive_context_retriever_recupera_conversacion():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+    from src.brain.intent_detector import IntentDetector
+
+    cognitive = CognitiveEngine()
+
+    intencion = IntentDetector().detectar(
+        "¿Qué es una estrella?"
+    )
+
+    retriever = CognitiveContextRetriever(
+        cognitive
+    )
+
+    resultado = retriever.recuperar(
+        intencion,
+        conversacion=(
+            "usuario: Hola\n"
+            "asistente: Hola"
+        )
+    )
+
+    assert (
+        resultado["conversacion"]
+        == "usuario: Hola\nasistente: Hola"
+    )
+
+
+def test_cognitive_context_retriever_omite_conversacion_si_no_corresponde():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+    from src.brain.intent import Intent
+
+    cognitive = CognitiveEngine()
+
+    intencion = Intent(
+        tipo="comando",
+        accion="resolver",
+        tema="ecuacion"
+    )
+
+    retriever = CognitiveContextRetriever(
+        cognitive
+    )
+
+    resultado = retriever.recuperar(
+        intencion,
+        conversacion="usuario: esto no debería entrar"
+    )
+
+    assert resultado["conversacion"] == ""
+
+
+def test_cognitive_context_retriever_estructura_completa():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+
+    cognitive = CognitiveEngine()
+
+    retriever = CognitiveContextRetriever(
+        cognitive
+    )
+
+    resultado = retriever.recuperar(
+        None,
+        conversacion="historial"
+    )
+
+    assert set(resultado.keys()) == {
+        "memoria",
+        "conocimiento",
+        "razonamiento",
+        "conversacion"
+    }
+
+    assert resultado["memoria"] == []
+    assert resultado["conocimiento"] == []
+    assert resultado["razonamiento"] == []
+    assert resultado["conversacion"] == ""
+     
+def test_cerebrum_llm_flujo_end_to_end_v007():
+    from src.brain.cerebrum_llm import CerebrumLLM
+
+    manager = LLMManager(
+        LLMConfig(
+            proveedor="mock",
+            modelo="cerebrum-v007"
+        )
+    )
+
+    cognitive = CognitiveEngine()
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        llm_manager=manager
+    )
+
+    primera = cerebrum.responder(
+        "CEREBRUM es inteligencia artificial"
+    )
+
+    segunda = cerebrum.responder(
+        "inteligencia artificial es software"
+    )
+
+    assert isinstance(
+        primera,
+        str
+    )
+
+    assert isinstance(
+        segunda,
+        str
+    )
+
+    assert (
+        "CEREBRUM es inteligencia artificial"
+        in primera
+    )
+
+    historial = (
+        manager
+        .obtener_sesion()
+        .obtener_contexto()
+    )
+
+    assert (
+        "usuario: CEREBRUM es inteligencia artificial"
+        in historial
+    )
+
+    assert (
+        "usuario: inteligencia artificial es software"
+        in historial
+    )
+
+    assert (
+        manager
+        .obtener_sesion()
+        .cantidad_mensajes()
+        == 4
+    )
+
+    intencion = (
+        cognitive
+        .obtener_ultima_intencion()
+    )
+
+    assert intencion is not None
+    assert intencion.tipo == "afirmacion"

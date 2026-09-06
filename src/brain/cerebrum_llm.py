@@ -2,21 +2,27 @@
 CEREBRUM
 Fachada de alto nivel para Cognitive Core + LLM Core.
 
-v0.0.6 Alpha - LLM Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
+from .cognitive_context_retriever import CognitiveContextRetriever
+from .cognitive_context_selector import CognitiveContextSelector
 from .cognitive_engine import CognitiveEngine
 from .llm import LLMResponse
 from .llm_manager import LLMManager
 
 
 class CerebrumLLM:
-    """Punto de entrada de alto nivel para interacción con CEREBRUM."""
+    """
+    Punto de entrada de alto nivel para interacción con CEREBRUM.
+    """
 
     def __init__(
         self,
         cognitive_engine: CognitiveEngine | None = None,
-        llm_manager: LLMManager | None = None
+        llm_manager: LLMManager | None = None,
+        context_selector: CognitiveContextSelector | None = None,
+        context_retriever: CognitiveContextRetriever | None = None
     ):
         self.cognitive_engine = (
             cognitive_engine
@@ -28,46 +34,202 @@ class CerebrumLLM:
             or LLMManager.desde_entorno()
         )
 
+        self.context_selector = (
+            context_selector
+            or CognitiveContextSelector()
+        )
+
+        self.context_retriever = (
+            context_retriever
+            or CognitiveContextRetriever(
+                self.cognitive_engine,
+                self.context_selector
+            )
+        )
+
     def procesar(
         self,
         mensaje: str
     ) -> LLMResponse:
-        """Procesa un mensaje usando cognición + LLM."""
+        """Ejecuta el flujo cognitivo completo."""
 
         resultado = self.cognitive_engine.procesar(
             mensaje
         )
 
-        conocimiento = [
-            f"{hecho.sujeto} "
-            f"{hecho.relacion} "
-            f"{hecho.objeto}"
-            for hecho in resultado.hechos_aprendidos
-        ]
+        intencion = resultado.intencion
 
-        razonamiento = [
-            f"{inferencia.conclusion.sujeto} "
-            f"{inferencia.conclusion.relacion} "
-            f"{inferencia.conclusion.objeto}"
-            for inferencia in resultado.inferencias
-        ]
+        conversacion = (
+            self.llm_manager
+            .obtener_sesion()
+            .obtener_contexto()
+        )
+
+        contexto = self.context_retriever.recuperar(
+            intencion,
+            conversacion=conversacion
+        )
 
         memoria = list(
-            resultado.evidencia
+            contexto.get(
+                "memoria",
+                []
+            )
         )
+
+        conocimiento = list(
+            contexto.get(
+                "conocimiento",
+                []
+            )
+        )
+
+        razonamiento = list(
+            contexto.get(
+                "razonamiento",
+                []
+            )
+        )
+
+        conversacion_recuperada = (
+            contexto.get(
+                "conversacion",
+                ""
+            )
+        )
+
+        estrategia = self._seleccionar_estrategia(
+            intencion
+        )
+
+        razonamiento.insert(
+            0,
+            f"Estrategia de procesamiento: {estrategia}"
+        )
+
+        if conversacion_recuperada:
+            razonamiento.insert(
+                1,
+                "La conversación actual es relevante."
+            )
+
+        # Fallback de seguridad para no perder
+        # conocimiento producido directamente
+        # por el CognitiveEngine.
+        if not conocimiento:
+            conocimiento = [
+                f"{hecho.sujeto} "
+                f"{hecho.relacion} "
+                f"{hecho.objeto}"
+                for hecho in resultado.hechos_aprendidos
+            ]
+
+        if not memoria and resultado.evidencia:
+            memoria = list(
+                resultado.evidencia
+            )
 
         return self.llm_manager.generar(
             mensaje=mensaje,
             memoria=memoria,
             conocimiento=conocimiento,
-            razonamiento=razonamiento
+            razonamiento=razonamiento,
+            intencion=intencion
+        )
+
+    def _seleccionar_estrategia(
+        self,
+        intencion
+    ) -> str:
+        """Selecciona una estrategia según la intención."""
+
+        if intencion is None:
+            return "respuesta_general"
+
+        if intencion.tipo == "pregunta":
+
+            if intencion.accion == "explicar":
+                return "explicacion"
+
+            if intencion.accion == "buscar":
+                return "busqueda"
+
+            if intencion.accion == "recordar":
+                return "memoria"
+
+            if intencion.accion == "resolver":
+                return "resolucion"
+
+            return "respuesta_directa"
+
+        if intencion.tipo == "comando":
+
+            if intencion.accion == "crear":
+                return "creacion"
+
+            if intencion.accion == "resolver":
+                return "resolucion"
+
+            if intencion.accion == "buscar":
+                return "busqueda"
+
+            return "ejecucion"
+
+        if intencion.tipo == "afirmacion":
+            return "aprendizaje"
+
+        return "respuesta_general"
+
+    def detectar_intencion(
+        self,
+        mensaje: str
+    ):
+        """Expone la intención detectada."""
+
+        return self.cognitive_engine.detectar_intencion(
+            mensaje
+        )
+
+    def obtener_seleccion_contexto(
+        self,
+        mensaje: str
+    ) -> dict[str, bool]:
+        """Devuelve qué fuentes son relevantes."""
+
+        intencion = self.cognitive_engine.detectar_intencion(
+            mensaje
+        )
+
+        return self.context_selector.seleccionar(
+            intencion
+        )
+
+    def obtener_contexto_recuperado(
+        self,
+        mensaje: str
+    ) -> dict:
+        """Devuelve el contexto recuperado."""
+
+        intencion = self.cognitive_engine.detectar_intencion(
+            mensaje
+        )
+
+        conversacion = (
+            self.llm_manager
+            .obtener_sesion()
+            .obtener_contexto()
+        )
+
+        return self.context_retriever.recuperar(
+            intencion,
+            conversacion=conversacion
         )
 
     def responder(
         self,
         mensaje: str
     ) -> str:
-        """Procesa un mensaje y devuelve texto limpio."""
+        """Procesa un mensaje y devuelve texto."""
 
         respuesta = self.procesar(
             mensaje

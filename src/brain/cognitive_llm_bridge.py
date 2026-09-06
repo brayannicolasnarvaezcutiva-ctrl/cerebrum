@@ -2,7 +2,7 @@
 CEREBRUM
 Puente entre el núcleo cognitivo y el LLM.
 
-v0.0.6 Alpha - LLM Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
 from .cognitive_engine import CognitiveEngine
@@ -25,41 +25,36 @@ class CognitiveLLMBridge:
         self,
         mensaje: str
     ) -> LLMResponse:
-        """
-        Procesa el mensaje cognitivamente y utiliza
-        el resultado para generar una respuesta LLM.
-        """
+        """Genera una respuesta usando contexto cognitivo."""
 
         resultado = self.cognitive_engine.procesar(
             mensaje
         )
 
-        memoria = list(resultado.evidencia)
-        conocimiento = []
+        conocimiento = [
+            f"{hecho.sujeto} "
+            f"{hecho.relacion} "
+            f"{hecho.objeto}"
+            for hecho in resultado.hechos_aprendidos
+        ]
 
-        for hecho in resultado.hechos_aprendidos:
-            conocimiento.append(
-                f"{hecho.sujeto} "
-                f"{hecho.relacion} "
-                f"{hecho.objeto}"
-            )
+        razonamiento = [
+            f"{inferencia.conclusion.sujeto} "
+            f"{inferencia.conclusion.relacion} "
+            f"{inferencia.conclusion.objeto}"
+            for inferencia in resultado.inferencias
+        ]
 
-        razonamiento = []
-
-        for inferencia in resultado.inferencias:
-            conclusion = inferencia.conclusion
-
-            razonamiento.append(
-                f"{conclusion.sujeto} "
-                f"{conclusion.relacion} "
-                f"{conclusion.objeto}"
-            )
+        memoria = list(
+            resultado.evidencia
+        )
 
         return self.llm_service.generar(
             mensaje=mensaje,
             memoria=memoria,
             conocimiento=conocimiento,
-            razonamiento=razonamiento
+            razonamiento=razonamiento,
+            intencion=resultado.intencion
         )
 
     def generar_texto(
@@ -68,10 +63,8 @@ class CognitiveLLMBridge:
     ) -> str:
         """Genera únicamente el texto de la respuesta."""
 
-        resultado = self.generar(
-            mensaje
-        )
-
         return self.llm_service.response_formatter.formatear(
-            resultado
+            self.generar(
+                mensaje
+            )
         )

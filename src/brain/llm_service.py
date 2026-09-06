@@ -2,9 +2,10 @@
 CEREBRUM
 Servicio de alto nivel para interacción con el LLM.
 
-v0.0.6 Alpha - LLM Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
+from .intent import Intent
 from .llm import LLMRequest, LLMResponse
 from .llm_config import LLMConfig
 from .llm_context_builder import LLMContextBuilder
@@ -47,9 +48,7 @@ class LLMService:
             fallback_enabled
         )
 
-    def _crear_fallback(
-        self
-    ) -> LLMEngine:
+    def _crear_fallback(self) -> LLMEngine:
         """Crea un motor Mock para recuperación."""
 
         config = LLMConfig(
@@ -69,7 +68,8 @@ class LLMService:
         mensaje: str,
         memoria: list[str] | None = None,
         conocimiento: list[str] | None = None,
-        razonamiento: list[str] | None = None
+        razonamiento: list[str] | None = None,
+        intencion: Intent | None = None
     ) -> LLMResponse:
         """Genera una respuesta y registra el turno."""
 
@@ -103,7 +103,8 @@ class LLMService:
             memoria=memoria,
             conocimiento=conocimiento,
             razonamiento=razonamiento,
-            conversacion=contexto_conversacional
+            conversacion=contexto_conversacional,
+            intencion=intencion
         )
 
         request = LLMRequest(
@@ -143,15 +144,16 @@ class LLMService:
         mensaje: str,
         memoria: list[str] | None = None,
         conocimiento: list[str] | None = None,
-        razonamiento: list[str] | None = None
+        razonamiento: list[str] | None = None,
+        intencion: Intent | None = None
     ) -> str:
-        """Genera una respuesta y devuelve texto limpio."""
 
         respuesta = self.generar(
             mensaje=mensaje,
             memoria=memoria,
             conocimiento=conocimiento,
-            razonamiento=razonamiento
+            razonamiento=razonamiento,
+            intencion=intencion
         )
 
         return self.response_formatter.formatear(
@@ -163,60 +165,39 @@ class LLMService:
         mensaje: str,
         memoria: list[str] | None = None,
         conocimiento: list[str] | None = None,
-        razonamiento: list[str] | None = None
+        razonamiento: list[str] | None = None,
+        intencion: Intent | None = None
     ) -> str:
-        """Genera una respuesta incluyendo metadatos."""
 
         respuesta = self.generar(
             mensaje=mensaje,
             memoria=memoria,
             conocimiento=conocimiento,
-            razonamiento=razonamiento
+            razonamiento=razonamiento,
+            intencion=intencion
         )
 
         return self.response_formatter.formatear_con_metadatos(
             respuesta
         )
 
-    def obtener_ultima_respuesta(
-        self
-    ) -> LLMResponse | None:
-        """Devuelve la última respuesta generada."""
-
+    def obtener_ultima_respuesta(self) -> LLMResponse | None:
         return self.engine.obtener_ultima_respuesta()
 
-    def obtener_configuracion(
-        self
-    ) -> LLMConfig:
-        """Devuelve la configuración actual."""
-
+    def obtener_configuracion(self) -> LLMConfig:
         return self.engine.obtener_configuracion()
 
-    def obtener_sesion(
-        self
-    ) -> LLMSession:
-        """Devuelve la sesión activa."""
-
+    def obtener_sesion(self) -> LLMSession:
         return self.session
 
-    def obtener_conversacion(
-        self
-    ) -> LLMSession:
-        """Alias compatible con la API anterior."""
-
+    def obtener_conversacion(self) -> LLMSession:
         return self.obtener_sesion()
 
     def limpiar_conversacion(self):
-        """Limpia el historial de la sesión."""
-
         self.session.limpiar()
 
     def cerrar_sesion(self):
-        """Cierra la sesión actual."""
-
         self.session.cerrar()
 
     def reabrir_sesion(self):
-        """Reabre la sesión actual."""
-
         self.session.reabrir()

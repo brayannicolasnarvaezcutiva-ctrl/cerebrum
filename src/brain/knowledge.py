@@ -1,8 +1,8 @@
 """
 CEREBRUM
-Sistema básico de representación de conocimiento.
+Sistema de representación de conocimiento.
 
-v0.0.5 Alpha - Cognitive Core
+v0.0.7 Alpha - Cognitive Interaction
 """
 
 from dataclasses import dataclass
@@ -116,6 +116,92 @@ class KnowledgeBase:
             key=lambda fact: fact.confianza,
             reverse=True
         )
+
+    def buscar_relevante(
+        self,
+        tema: str,
+        limite: int | None = None
+    ):
+        """
+        Busca conocimiento relacionado con un tema.
+
+        La búsqueda compara el tema con sujeto, relación y objeto.
+        Los resultados se ordenan por confianza y relevancia.
+        """
+
+        if not isinstance(tema, str):
+            return []
+
+        tema = " ".join(
+            tema.lower().split()
+        ).strip()
+
+        if not tema:
+            return []
+
+        palabras_tema = set(
+            tema.split()
+        )
+
+        candidatos = []
+
+        for fact in self.facts:
+
+            campos = (
+                fact.sujeto,
+                fact.relacion,
+                fact.objeto
+            )
+
+            texto_fact = " ".join(
+                campos
+            ).lower()
+
+            palabras_fact = set(
+                texto_fact.split()
+            )
+
+            coincidencias = len(
+                palabras_tema & palabras_fact
+            )
+
+            if coincidencias == 0:
+                continue
+
+            puntuacion = (
+                coincidencias / len(palabras_tema)
+            )
+
+            candidatos.append(
+                (
+                    puntuacion,
+                    fact.confianza,
+                    fact
+                )
+            )
+
+        candidatos.sort(
+            key=lambda item: (
+                item[0],
+                item[1]
+            ),
+            reverse=True
+        )
+
+        resultados = [
+            item[2]
+            for item in candidatos
+        ]
+
+        if limite is not None:
+            limite = max(
+                0,
+                int(limite)
+            )
+
+            resultados = resultados[:limite]
+
+        return resultados
 
     def existe(
         self,
