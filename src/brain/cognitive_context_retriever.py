@@ -75,7 +75,7 @@ class CognitiveContextRetriever:
         )
 
         # -------------------------
-        # CONVERSACIÓN
+        # CONVERSACIÓN + MEMORIA
         # -------------------------
 
         if seleccion.get(
@@ -86,9 +86,21 @@ class CognitiveContextRetriever:
                 conversacion,
                 str
             ):
-                resultado["conversacion"] = (
+                conversacion = (
                     conversacion.strip()
                 )
+
+                resultado["conversacion"] = (
+                    conversacion
+                )
+
+                if conversacion:
+                    resultado["memoria"] = (
+                        self._recuperar_memoria(
+                            conversacion,
+                            tema
+                        )
+                    )
 
         # -------------------------
         # CONOCIMIENTO
@@ -139,3 +151,56 @@ class CognitiveContextRetriever:
             ]
 
         return resultado
+
+    def _recuperar_memoria(
+        self,
+        conversacion: str,
+        tema: str
+    ) -> list[str]:
+        """
+        Recupera fragmentos relevantes de la conversación.
+
+        Prioridad:
+        1. Fragmentos que contienen palabras relacionadas con el tema.
+        2. Si no hay coincidencias, devuelve los últimos fragmentos.
+        """
+
+        lineas = [
+            linea.strip()
+            for linea in conversacion.splitlines()
+            if linea.strip()
+        ]
+
+        if not lineas:
+            return []
+
+        if not tema:
+            return lineas[-self.limite:]
+
+        palabras_tema = {
+            palabra.lower()
+            for palabra in tema.split()
+            if palabra.strip()
+        }
+
+        relevantes = []
+
+        for linea in lineas:
+            palabras_linea = {
+                palabra.lower().strip(
+                    ".,;:!?¿¡()[]{}\"'"
+                )
+                for palabra in linea.split()
+            }
+
+            if palabras_tema.intersection(
+                palabras_linea
+            ):
+                relevantes.append(
+                    linea
+                )
+
+        if relevantes:
+            return relevantes[-self.limite:]
+
+        return lineas[-self.limite:]

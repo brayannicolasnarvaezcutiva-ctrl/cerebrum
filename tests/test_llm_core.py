@@ -19,7 +19,8 @@ from src.brain.llm_response_formatter import LLMResponseFormatter
 from src.brain.llm_service import LLMService
 
 from src.brain.mock_llm import MockLLMProvider
-
+from src.brain.intent import Intent
+from src.brain.cognitive_context_selector import CognitiveContextSelector
 
 def test_llm_context_construye():
     contexto = LLMContext(
@@ -1306,3 +1307,348 @@ def test_cerebrum_llm_flujo_end_to_end_v007():
 
     assert intencion is not None
     assert intencion.tipo == "afirmacion"
+    
+def test_cognitive_context_retriever_recupera_memoria_relevante():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+
+    cognitive = CognitiveEngine()
+
+    intencion = Intent(
+        tipo="pregunta",
+        accion="recordar",
+        tema="estrella"
+    )
+
+    conversacion = (
+        "usuario: Hola CEREBRUM\n"
+        "asistente: Hola\n"
+        "usuario: hablamos sobre una estrella\n"
+        "asistente: sí, hablamos de astronomía"
+    )
+
+    retriever = CognitiveContextRetriever(
+        cognitive
+    )
+
+    resultado = retriever.recuperar(
+        intencion,
+        conversacion=conversacion
+    )
+
+    assert len(
+        resultado["memoria"]
+    ) > 0
+
+    assert any(
+        "estrella" in linea.lower()
+        for linea in resultado["memoria"]
+    )
+
+
+def test_cognitive_context_retriever_limita_memoria():
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+
+    cognitive = CognitiveEngine()
+
+    intencion = Intent(
+        tipo="pregunta",
+        accion="recordar",
+        tema="estrella"
+    )
+
+    conversacion = "\n".join(
+        [
+            "usuario: estrella uno",
+            "asistente: estrella dos",
+            "usuario: estrella tres",
+            "asistente: estrella cuatro"
+        ]
+    )
+
+    retriever = CognitiveContextRetriever(
+        cognitive,
+        limite=2
+    )
+
+    resultado = retriever.recuperar(
+        intencion,
+        conversacion=conversacion
+    )
+
+    assert len(
+        resultado["memoria"]
+    ) <= 2
+
+def test_cognitive_context_selector_explicacion():
+    selector = CognitiveContextSelector()
+
+    intencion = Intent(
+        tipo="pregunta",
+        accion="explicar",
+        tema="astronomia"
+    )
+
+    resultado = selector.seleccionar(
+        intencion
+    )
+
+    assert resultado == {
+        "memoria": True,
+        "conocimiento": True,
+        "razonamiento": True,
+        "conversacion": True
+    }
+
+
+def test_cognitive_context_selector_memoria():
+    selector = CognitiveContextSelector()
+
+    intencion = Intent(
+        tipo="pregunta",
+        accion="recordar",
+        tema="astronomia"
+    )
+
+    resultado = selector.seleccionar(
+        intencion
+    )
+
+    assert resultado == {
+        "memoria": True,
+        "conocimiento": False,
+        "razonamiento": False,
+        "conversacion": True
+    }
+
+
+def test_cognitive_context_selector_resolucion():
+    selector = CognitiveContextSelector()
+
+    intencion = Intent(
+        tipo="comando",
+        accion="resolver",
+        tema="ecuacion"
+    )
+
+    resultado = selector.seleccionar(
+        intencion
+    )
+
+    assert resultado == {
+        "memoria": False,
+        "conocimiento": True,
+        "razonamiento": True,
+        "conversacion": False
+    }
+
+def test_cognitive_strategy_router_explicacion():
+    from src.brain.cognitive_strategy_router import (
+        CognitiveStrategyRouter
+    )
+
+    router = CognitiveStrategyRouter()
+
+    estrategia = router.enrutar(
+        Intent(
+            tipo="pregunta",
+            accion="explicar",
+            tema="estrella"
+        )
+    )
+
+    assert estrategia == "explicacion"
+
+
+def test_cognitive_strategy_router_memoria():
+    from src.brain.cognitive_strategy_router import (
+        CognitiveStrategyRouter
+    )
+
+    router = CognitiveStrategyRouter()
+
+    estrategia = router.enrutar(
+        Intent(
+            tipo="pregunta",
+            accion="recordar"
+        )
+    )
+
+    assert estrategia == "memoria"
+
+
+def test_cognitive_strategy_router_ninguna():
+    from src.brain.cognitive_strategy_router import (
+        CognitiveStrategyRouter
+    )
+
+    router = CognitiveStrategyRouter()
+
+    assert (
+        router.enrutar(None)
+        == "respuesta_general"
+    )
+
+
+def test_cognitive_strategy_router_instrucciones():
+    from src.brain.cognitive_strategy_router import (
+        CognitiveStrategyRouter
+    )
+
+    router = CognitiveStrategyRouter()
+
+    instrucciones = router.instrucciones(
+        "resolucion"
+    )
+
+    assert (
+        "paso a paso"
+        in instrucciones
+    )
+
+def test_cerebrum_llm_selecciona_estrategia():
+    from src.brain.cerebrum_llm import CerebrumLLM
+
+    manager = LLMManager(
+        LLMConfig(proveedor="mock")
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=CognitiveEngine(),
+        llm_manager=manager
+    )
+
+    assert (
+        cerebrum.obtener_estrategia(
+            "¿Qué es una estrella?"
+        )
+        == "explicacion"
+    )
+
+
+def test_cerebrum_llm_contexto_recuperado():
+    from src.brain.cerebrum_llm import CerebrumLLM
+
+    cognitive = CognitiveEngine()
+
+    cognitive.knowledge_base.agregar(
+        "estrella",
+        "es",
+        "una esfera de plasma"
+    )
+
+    manager = LLMManager(
+        LLMConfig(proveedor="mock")
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        llm_manager=manager
+    )
+
+    contexto = cerebrum.obtener_contexto_recuperado(
+        "¿Qué es una estrella?"
+    )
+
+    assert (
+        "estrella es una esfera de plasma"
+        in contexto["conocimiento"]
+    )
+
+
+def test_cerebrum_llm_prompt_incluye_estrategia():
+    from src.brain.cerebrum_llm import CerebrumLLM
+
+    manager = LLMManager(
+        LLMConfig(proveedor="mock")
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=CognitiveEngine(),
+        llm_manager=manager
+    )
+
+    respuesta = cerebrum.responder(
+        "¿Qué es una estrella?"
+    )
+
+    assert (
+        "Estrategia de procesamiento: explicacion"
+        in respuesta
+    )
+
+def test_cerebrum_v007_flujo_completo():
+    from src.brain.cerebrum_llm import CerebrumLLM
+
+    cognitive = CognitiveEngine()
+
+    cognitive.knowledge_base.agregar(
+        "estrella",
+        "es",
+        "una esfera de plasma",
+        0.95
+    )
+
+    cognitive.knowledge_base.agregar(
+        "estrella",
+        "emite",
+        "luz",
+        0.90
+    )
+
+    manager = LLMManager(
+        LLMConfig(
+            proveedor="mock",
+            modelo="cerebrum-v007"
+        )
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        llm_manager=manager
+    )
+
+    respuesta = cerebrum.responder(
+        "¿Qué es una estrella?"
+    )
+
+    assert isinstance(
+        respuesta,
+        str
+    )
+
+    assert (
+        "Estrategia de procesamiento: explicacion"
+        in respuesta
+    )
+
+    contexto = cerebrum.obtener_contexto_recuperado(
+        "¿Qué es una estrella?"
+    )
+
+    assert (
+        "estrella es una esfera de plasma"
+        in contexto["conocimiento"]
+    )
+
+    assert (
+        "estrella emite luz"
+        in contexto["conocimiento"]
+    )
+
+    assert (
+        cognitive
+        .obtener_ultima_intencion()
+        .accion
+        == "explicar"
+    )
+
+    assert (
+        manager
+        .obtener_sesion()
+        .cantidad_mensajes()
+        == 2
+    )

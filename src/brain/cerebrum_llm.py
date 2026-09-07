@@ -8,6 +8,7 @@ v0.0.7 Alpha - Cognitive Interaction
 from .cognitive_context_retriever import CognitiveContextRetriever
 from .cognitive_context_selector import CognitiveContextSelector
 from .cognitive_engine import CognitiveEngine
+from .cognitive_strategy_router import CognitiveStrategyRouter
 from .llm import LLMResponse
 from .llm_manager import LLMManager
 
@@ -22,7 +23,8 @@ class CerebrumLLM:
         cognitive_engine: CognitiveEngine | None = None,
         llm_manager: LLMManager | None = None,
         context_selector: CognitiveContextSelector | None = None,
-        context_retriever: CognitiveContextRetriever | None = None
+        context_retriever: CognitiveContextRetriever | None = None,
+        strategy_router: CognitiveStrategyRouter | None = None
     ):
         self.cognitive_engine = (
             cognitive_engine
@@ -45,6 +47,11 @@ class CerebrumLLM:
                 self.cognitive_engine,
                 self.context_selector
             )
+        )
+
+        self.strategy_router = (
+            strategy_router
+            or CognitiveStrategyRouter()
         )
 
     def procesar(
@@ -91,15 +98,14 @@ class CerebrumLLM:
             )
         )
 
-        conversacion_recuperada = (
-            contexto.get(
-                "conversacion",
-                ""
-            )
+        estrategia = self.strategy_router.enrutar(
+            intencion
         )
 
-        estrategia = self._seleccionar_estrategia(
-            intencion
+        instrucciones = (
+            self.strategy_router.instrucciones(
+                estrategia
+            )
         )
 
         razonamiento.insert(
@@ -107,27 +113,10 @@ class CerebrumLLM:
             f"Estrategia de procesamiento: {estrategia}"
         )
 
-        if conversacion_recuperada:
-            razonamiento.insert(
-                1,
-                "La conversación actual es relevante."
-            )
-
-        # Fallback de seguridad para no perder
-        # conocimiento producido directamente
-        # por el CognitiveEngine.
-        if not conocimiento:
-            conocimiento = [
-                f"{hecho.sujeto} "
-                f"{hecho.relacion} "
-                f"{hecho.objeto}"
-                for hecho in resultado.hechos_aprendidos
-            ]
-
-        if not memoria and resultado.evidencia:
-            memoria = list(
-                resultado.evidencia
-            )
+        razonamiento.insert(
+            1,
+            f"Instrucciones: {instrucciones}"
+        )
 
         return self.llm_manager.generar(
             mensaje=mensaje,
@@ -136,49 +125,6 @@ class CerebrumLLM:
             razonamiento=razonamiento,
             intencion=intencion
         )
-
-    def _seleccionar_estrategia(
-        self,
-        intencion
-    ) -> str:
-        """Selecciona una estrategia según la intención."""
-
-        if intencion is None:
-            return "respuesta_general"
-
-        if intencion.tipo == "pregunta":
-
-            if intencion.accion == "explicar":
-                return "explicacion"
-
-            if intencion.accion == "buscar":
-                return "busqueda"
-
-            if intencion.accion == "recordar":
-                return "memoria"
-
-            if intencion.accion == "resolver":
-                return "resolucion"
-
-            return "respuesta_directa"
-
-        if intencion.tipo == "comando":
-
-            if intencion.accion == "crear":
-                return "creacion"
-
-            if intencion.accion == "resolver":
-                return "resolucion"
-
-            if intencion.accion == "buscar":
-                return "busqueda"
-
-            return "ejecucion"
-
-        if intencion.tipo == "afirmacion":
-            return "aprendizaje"
-
-        return "respuesta_general"
 
     def detectar_intencion(
         self,
@@ -223,6 +169,20 @@ class CerebrumLLM:
         return self.context_retriever.recuperar(
             intencion,
             conversacion=conversacion
+        )
+
+    def obtener_estrategia(
+        self,
+        mensaje: str
+    ) -> str:
+        """Devuelve la estrategia seleccionada."""
+
+        intencion = self.cognitive_engine.detectar_intencion(
+            mensaje
+        )
+
+        return self.strategy_router.enrutar(
+            intencion
         )
 
     def responder(
