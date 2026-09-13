@@ -2,23 +2,25 @@
 CEREBRUM
 Recuperación de contexto cognitivo relevante.
 
-v0.0.7 Alpha - Cognitive Interaction
+v0.0.8 Alpha - Memory Bridge
 """
 
 from .cognitive_context_selector import CognitiveContextSelector
 from .cognitive_engine import CognitiveEngine
+from .memory_bridge import MemoryBridge
 
 
 class CognitiveContextRetriever:
     """
     Recupera información relevante del Cognitive Core
-    y del contexto conversacional.
+    y del sistema de memoria.
     """
 
     def __init__(
         self,
         cognitive_engine: CognitiveEngine,
         selector: CognitiveContextSelector | None = None,
+        memory_bridge: MemoryBridge | None = None,
         limite: int = 10
     ):
         self.cognitive_engine = cognitive_engine
@@ -26,6 +28,11 @@ class CognitiveContextRetriever:
         self.selector = (
             selector
             or CognitiveContextSelector()
+        )
+
+        self.memory_bridge = (
+            memory_bridge
+            or MemoryBridge()
         )
 
         self.limite = max(
@@ -75,7 +82,25 @@ class CognitiveContextRetriever:
         )
 
         # -------------------------
-        # CONVERSACIÓN + MEMORIA
+        # MEMORIA PERSISTENTE
+        # -------------------------
+
+        if (
+            seleccion.get(
+                "memoria",
+                False
+            )
+            and tema
+        ):
+            resultado["memoria"] = (
+                self.memory_bridge.contexto_para(
+                    tema,
+                    limite=self.limite
+                )
+            )
+
+        # -------------------------
+        # CONVERSACIÓN
         # -------------------------
 
         if seleccion.get(
@@ -95,12 +120,22 @@ class CognitiveContextRetriever:
                 )
 
                 if conversacion:
-                    resultado["memoria"] = (
-                        self._recuperar_memoria(
+                    memoria_conversacional = (
+                        self._recuperar_memoria_conversacional(
                             conversacion,
                             tema
                         )
                     )
+
+                    resultado["memoria"].extend(
+                        memoria_conversacional
+                    )
+
+                    resultado["memoria"] = list(
+                        dict.fromkeys(
+                            resultado["memoria"]
+                        )
+                    )[-self.limite:]
 
         # -------------------------
         # CONOCIMIENTO
@@ -152,17 +187,13 @@ class CognitiveContextRetriever:
 
         return resultado
 
-    def _recuperar_memoria(
+    def _recuperar_memoria_conversacional(
         self,
         conversacion: str,
         tema: str
     ) -> list[str]:
         """
-        Recupera fragmentos relevantes de la conversación.
-
-        Prioridad:
-        1. Fragmentos que contienen palabras relacionadas con el tema.
-        2. Si no hay coincidencias, devuelve los últimos fragmentos.
+        Recupera fragmentos relevantes de la conversación actual.
         """
 
         lineas = [
@@ -178,9 +209,13 @@ class CognitiveContextRetriever:
             return lineas[-self.limite:]
 
         palabras_tema = {
-            palabra.lower()
+            palabra.lower().strip(
+                ".,;:!?¿¡()[]{}\"'"
+            )
             for palabra in tema.split()
-            if palabra.strip()
+            if palabra.strip(
+                ".,;:!?¿¡()[]{}\"'"
+            )
         }
 
         relevantes = []

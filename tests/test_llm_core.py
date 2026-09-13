@@ -21,6 +21,7 @@ from src.brain.llm_service import LLMService
 from src.brain.mock_llm import MockLLMProvider
 from src.brain.intent import Intent
 from src.brain.cognitive_context_selector import CognitiveContextSelector
+from src.brain.cerebrum_llm import CerebrumLLM
 
 def test_llm_context_construye():
     contexto = LLMContext(
@@ -1651,4 +1652,1051 @@ def test_cerebrum_v007_flujo_completo():
         .obtener_sesion()
         .cantidad_mensajes()
         == 2
+    )
+
+def test_memory_bridge_guardar_memoria_importante():
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory import Memory
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge.json"
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service
+    )
+
+    resultado = bridge.guardar(
+        "mi proyecto es CEREBRUM"
+    )
+
+    assert resultado is not None
+    assert resultado["contenido"] == "CEREBRUM"
+
+
+def test_memory_bridge_recordar():
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory import Memory
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge.json"
+    )
+
+    memoria.guardar(
+        "CEREBRUM",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service
+    )
+
+    recuerdo = bridge.recordar(
+        "CEREBRUM"
+    )
+
+    assert recuerdo is not None
+    assert recuerdo["contenido"] == "CEREBRUM"
+
+
+def test_memory_bridge_recuperar_relevante():
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory import Memory
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge.json"
+    )
+
+    memoria.guardar(
+        "Estoy desarrollando CEREBRUM",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service
+    )
+
+    recuerdos = bridge.recuperar_relevante(
+        "CEREBRUM"
+    )
+
+    assert len(recuerdos) > 0
+
+
+def test_memory_bridge_contexto_para():
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory import Memory
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge.json"
+    )
+
+    memoria.guardar(
+        "Mi proyecto es CEREBRUM",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service
+    )
+
+    contexto = bridge.contexto_para(
+        "CEREBRUM"
+    )
+
+    assert len(contexto) > 0
+    assert any(
+        "CEREBRUM" in linea
+        for linea in contexto
+    )
+
+def test_memory_bridge_obtener_contexto_limita():
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory import Memory
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge.json"
+    )
+
+    memoria.guardar(
+        "CEREBRUM es un proyecto de inteligencia artificial",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    memoria.guardar(
+        "CEREBRUM tiene un sistema cognitivo",
+        tipo="proyecto",
+        importancia=4
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service
+    )
+
+    contexto = bridge.obtener_contexto(
+        "CEREBRUM",
+        limite=1
+    )
+
+    assert len(contexto) <= 1
+
+
+def test_memory_bridge_contexto_para_devuelve_texto():
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory import Memory
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge.json"
+    )
+
+    memoria.guardar(
+        "CEREBRUM es mi proyecto",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service
+    )
+
+    contexto = bridge.contexto_para(
+        "CEREBRUM"
+    )
+
+    assert isinstance(
+        contexto,
+        list
+    )
+
+    assert any(
+        "CEREBRUM" in texto
+        for texto in contexto
+    )
+
+def test_cerebrum_llm_integra_memory_bridge():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+    from src.brain.cognitive_context_selector import (
+        CognitiveContextSelector
+    )
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_memory_bridge.json"
+    )
+
+    memoria.guardar(
+        "Mi proyecto es CEREBRUM",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    memory_service = MemoryService(
+        memory=memoria
+    )
+
+    memory_bridge = MemoryBridge(
+        memory_service=memory_service
+    )
+
+    cognitive = CognitiveEngine()
+
+    retriever = CognitiveContextRetriever(
+        cognitive_engine=cognitive,
+        selector=CognitiveContextSelector(),
+        memory_bridge=memory_bridge
+    )
+
+    contexto = retriever.recuperar(
+        Intent(
+            tipo="pregunta",
+            accion="recordar",
+            tema="CEREBRUM"
+        )
+    )
+
+    assert len(
+        contexto["memoria"]
+    ) > 0
+
+    assert any(
+        "CEREBRUM" in recuerdo
+        for recuerdo in contexto["memoria"]
+    )
+
+
+def test_cerebrum_llm_contexto_recuperado_usa_memory_bridge():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.cognitive_context_retriever import (
+        CognitiveContextRetriever
+    )
+    from src.brain.cognitive_context_selector import (
+        CognitiveContextSelector
+    )
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_memory_bridge_2.json"
+    )
+
+    memoria.guardar(
+        "Estoy construyendo CEREBRUM",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    cognitive = CognitiveEngine()
+
+    retriever = CognitiveContextRetriever(
+        cognitive_engine=cognitive,
+        selector=CognitiveContextSelector(),
+        memory_bridge=bridge
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        context_retriever=retriever
+    )
+
+    intencion = Intent(
+        tipo="pregunta",
+        accion="recordar",
+        tema="CEREBRUM"
+    )
+
+    contexto = (
+        cerebrum
+        .obtener_contexto_recuperado(
+            intencion
+        )
+    )
+
+    assert len(
+        contexto["memoria"]
+    ) > 0
+
+    assert any(
+        "CEREBRUM" in recuerdo
+        for recuerdo in contexto["memoria"]
+    )
+
+def test_cerebrum_llm_expone_memory_bridge():
+    from src.brain.memory_bridge import MemoryBridge
+
+    cognitive = CognitiveEngine()
+
+    manager = LLMManager(
+        LLMConfig(
+            proveedor="mock"
+        )
+    )
+
+    bridge = MemoryBridge()
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        llm_manager=manager,
+        memory_bridge=bridge
+    )
+
+    assert cerebrum.memory_bridge is bridge
+
+
+def test_cerebrum_llm_puede_guardar_y_recordar():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_memory_bridge_3.json"
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=CognitiveEngine(),
+        llm_manager=LLMManager(
+            LLMConfig(proveedor="mock")
+        ),
+        memory_bridge=bridge
+    )
+
+    cerebrum.guardar_memoria_manual(
+        "CEREBRUM usa memoria persistente"
+    )
+
+    recuerdo = cerebrum.recordar(
+        "CEREBRUM"
+    )
+
+    assert recuerdo is not None
+
+    assert (
+        recuerdo["contenido"]
+        == "CEREBRUM usa memoria persistente"
+    )
+
+
+def test_cerebrum_llm_obtiene_contexto_de_memoria():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_memory_bridge_4.json"
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    bridge.guardar_manual(
+        "CEREBRUM es un proyecto de inteligencia artificial"
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=CognitiveEngine(),
+        llm_manager=LLMManager(
+            LLMConfig(proveedor="mock")
+        ),
+        memory_bridge=bridge
+    )
+
+    contexto = cerebrum.obtener_contexto_de_memoria(
+        "CEREBRUM"
+    )
+
+    assert (
+        "CEREBRUM es un proyecto de inteligencia artificial"
+        in contexto
+    )
+
+
+def test_cerebrum_llm_obtiene_memorias_relevantes():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_memory_bridge_5.json"
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    bridge.guardar_manual(
+        "Estoy desarrollando CEREBRUM"
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=CognitiveEngine(),
+        llm_manager=LLMManager(
+            LLMConfig(proveedor="mock")
+        ),
+        memory_bridge=bridge
+    )
+
+    recuerdos = cerebrum.obtener_memorias_relevantes(
+        "CEREBRUM"
+    )
+
+    assert len(
+        recuerdos
+    ) > 0
+
+def test_memory_policy_guarda_proyecto():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_policy import MemoryPolicy
+
+    memoria = Memory(
+        file_path="data/test_memory_policy_1.json"
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    policy = MemoryPolicy()
+
+    resultado = policy.evaluar(
+        service,
+        "mi proyecto es CEREBRUM"
+    )
+
+    assert resultado["guardar"] is True
+    assert resultado["tipo"] == "proyecto"
+    assert resultado["importancia"] == 5
+    assert resultado["contenido"] == "CEREBRUM"
+
+
+def test_memory_policy_no_guarda_texto_general():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_policy import MemoryPolicy
+
+    memoria = Memory(
+        file_path="data/test_memory_policy_2.json"
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    policy = MemoryPolicy()
+
+    resultado = policy.evaluar(
+        service,
+        "hoy hace calor"
+    )
+
+    assert resultado["guardar"] is False
+    assert resultado["tipo"] == "general"
+
+
+def test_memory_policy_guardar_si_corresponde():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_policy import MemoryPolicy
+
+    memoria = Memory(
+        file_path="data/test_memory_policy_3.json"
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    policy = MemoryPolicy()
+
+    recuerdo = policy.guardar_si_corresponde(
+        service,
+        "estoy trabajando en CEREBRUM"
+    )
+
+    assert recuerdo is not None
+    assert recuerdo["tipo"] == "proyecto"
+
+    recuerdos = memoria.obtener_todo()
+
+    assert len(recuerdos) == 1
+
+def test_memory_bridge_evalua_memoria():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_policy import MemoryPolicy
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge_policy.json"
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service,
+        memory_policy=MemoryPolicy()
+    )
+
+    resultado = bridge.evaluar(
+        "mi proyecto es CEREBRUM"
+    )
+
+    assert resultado["guardar"] is True
+    assert resultado["tipo"] == "proyecto"
+    assert resultado["importancia"] == 5
+
+
+def test_memory_bridge_guardar_usa_policy():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_policy import MemoryPolicy
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge_policy_2.json"
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service,
+        memory_policy=MemoryPolicy()
+    )
+
+    recuerdo = bridge.guardar(
+        "mi proyecto es CEREBRUM"
+    )
+
+    assert recuerdo is not None
+
+    recuerdos = memoria.obtener_todo()
+
+    assert len(recuerdos) == 1
+
+
+def test_memory_bridge_no_guarda_general():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_policy import MemoryPolicy
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge_policy_3.json"
+    )
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service,
+        memory_policy=MemoryPolicy()
+    )
+
+    recuerdo = bridge.guardar(
+        "hoy hace calor"
+    )
+
+    assert recuerdo is None
+
+    assert memoria.obtener_todo() == []
+
+def test_cerebrum_llm_guarda_memoria_importante_automaticamente():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_auto_memory.json"
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    cognitive = CognitiveEngine()
+
+    manager = LLMManager(
+        LLMConfig(
+            proveedor="mock"
+        )
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        llm_manager=manager,
+        memory_bridge=bridge
+    )
+
+    cerebrum.responder(
+        "mi proyecto es CEREBRUM"
+    )
+
+    recuerdos = memoria.obtener_todo()
+
+    assert len(
+        recuerdos
+    ) == 1
+
+    assert recuerdos[0]["tipo"] == "proyecto"
+    assert recuerdos[0]["contenido"] == "CEREBRUM"
+
+
+def test_cerebrum_llm_no_guarda_memoria_general():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_auto_memory_2.json"
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=CognitiveEngine(),
+        llm_manager=LLMManager(
+            LLMConfig(
+                proveedor="mock"
+            )
+        ),
+        memory_bridge=bridge
+    )
+
+    cerebrum.responder(
+        "hoy está lloviendo"
+    )
+
+    assert (
+        memoria.obtener_todo()
+        == []
+    )
+
+
+def test_cerebrum_llm_memoria_no_rompe_respuesta():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_cerebrum_memoria_fallida.json"
+    )
+
+    def guardar_fallido(_memoria):
+        raise RuntimeError(
+            "fallo de almacenamiento"
+        )
+
+    memoria._guardar_archivo = guardar_fallido
+
+    service = MemoryService(
+        memory=memoria
+    )
+
+    bridge = MemoryBridge(
+        memory_service=service
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=CognitiveEngine(),
+        llm_manager=LLMManager(
+            LLMConfig(
+                proveedor="mock"
+            )
+        ),
+        memory_bridge=bridge
+    )
+
+    respuesta = cerebrum.responder(
+        "mi proyecto es CEREBRUM"
+    )
+
+    assert isinstance(
+        respuesta,
+        str
+    )
+
+    assert (
+        "Respuesta simulada del LLM."
+        in respuesta
+    )
+
+def test_memory_ranker_prioriza_relevancia():
+    from src.brain.memory_ranker import MemoryRanker
+
+    ranker = MemoryRanker()
+
+    recuerdos = [
+        {
+            "contenido": "Me gusta la música",
+            "importancia": 3
+        },
+        {
+            "contenido": "Mi proyecto es CEREBRUM",
+            "importancia": 5
+        }
+    ]
+
+    resultado = ranker.ordenar(
+        recuerdos,
+        "CEREBRUM"
+    )
+
+    assert (
+        resultado[0]["contenido"]
+        == "Mi proyecto es CEREBRUM"
+    )
+
+
+def test_memory_ranker_puntua_importancia():
+    from src.brain.memory_ranker import MemoryRanker
+
+    ranker = MemoryRanker()
+
+    recuerdo = {
+        "contenido": "CEREBRUM",
+        "importancia": 5
+    }
+
+    puntuacion = ranker.puntuar(
+        recuerdo,
+        "CEREBRUM"
+    )
+
+    assert puntuacion > 0.5
+
+
+def test_memory_ranker_ignora_recuerdo_invalido():
+    from src.brain.memory_ranker import MemoryRanker
+
+    ranker = MemoryRanker()
+
+    resultado = ranker.ordenar(
+        [
+            "esto no es un recuerdo"
+        ],
+        "CEREBRUM"
+    )
+
+    assert resultado == []
+
+
+def test_memory_ranker_recencia_es_valida():
+    from datetime import datetime
+
+    from src.brain.memory_ranker import MemoryRanker
+
+    ranker = MemoryRanker()
+
+    recuerdo = {
+        "contenido": "CEREBRUM",
+        "importancia": 5,
+        "fecha": datetime.now().isoformat(
+            timespec="seconds"
+        )
+    }
+
+    puntuacion = ranker.puntuar(
+        recuerdo,
+        "CEREBRUM"
+    )
+
+    assert puntuacion > 0.0
+
+def test_memory_bridge_usa_memory_ranker():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+    from src.brain.memory_ranker import MemoryRanker
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge_ranker.json"
+    )
+
+    memoria.guardar(
+        "CEREBRUM es mi proyecto",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    memoria.guardar(
+        "Me gusta programar",
+        tipo="preferencia",
+        importancia=3
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        ),
+        memory_ranker=MemoryRanker()
+    )
+
+    recuerdos = bridge.recuperar_relevante(
+        "CEREBRUM"
+    )
+
+    assert len(recuerdos) > 0
+    assert (
+        recuerdos[0]["contenido"]
+        == "CEREBRUM es mi proyecto"
+    )
+
+
+def test_memory_bridge_contexto_respeta_ranking():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_memory_bridge_ranker_2.json"
+    )
+
+    memoria.guardar(
+        "CEREBRUM es mi proyecto",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    memoria.guardar(
+        "CEREBRUM tiene memoria",
+        tipo="proyecto",
+        importancia=4
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    contexto = bridge.obtener_contexto(
+        "CEREBRUM",
+        limite=1
+    )
+
+    assert len(contexto) == 1
+    assert (
+        contexto[0]["contenido"]
+        == "CEREBRUM es mi proyecto"
+    )
+
+def test_cerebrum_llm_integra_memoria_persistente_en_contexto():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    memoria = Memory(
+        file_path="data/test_v008_integracion_memoria.json"
+    )
+
+    memoria.guardar(
+        "CEREBRUM es mi proyecto principal",
+        tipo="proyecto",
+        importancia=5
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    cognitive = CognitiveEngine()
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        llm_manager=LLMManager(
+            LLMConfig(
+                proveedor="mock"
+            )
+        ),
+        memory_bridge=bridge
+    )
+
+    respuesta = cerebrum.responder(
+        "¿Qué es mi proyecto CEREBRUM?"
+    )
+
+    assert (
+        "CEREBRUM es mi proyecto principal"
+        in respuesta
+    )
+
+def test_memory_bridge_persiste_entre_instancias():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    ruta = "data/test_v008_persistencia.json"
+
+    memoria_1 = Memory(
+        file_path=ruta
+    )
+
+    bridge_1 = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria_1
+        )
+    )
+
+    bridge_1.guardar_manual(
+        "CEREBRUM tiene memoria persistente"
+    )
+
+    memoria_2 = Memory(
+        file_path=ruta
+    )
+
+    bridge_2 = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria_2
+        )
+    )
+
+    recuerdo = bridge_2.recordar(
+        "CEREBRUM"
+    )
+
+    assert recuerdo is not None
+
+    assert (
+        recuerdo["contenido"]
+        == "CEREBRUM tiene memoria persistente"
+    )
+
+def test_cerebrum_v008_memoria_end_to_end():
+    from src.brain.memory import Memory
+    from src.brain.memory_service import MemoryService
+    from src.brain.memory_bridge import MemoryBridge
+
+    ruta = "data/test_v008_e2e.json"
+
+    memoria = Memory(
+        file_path=ruta
+    )
+
+    bridge = MemoryBridge(
+        memory_service=MemoryService(
+            memory=memoria
+        )
+    )
+
+    cognitive = CognitiveEngine()
+
+    manager = LLMManager(
+        LLMConfig(
+            proveedor="mock",
+            modelo="cerebrum-v008"
+        )
+    )
+
+    cerebrum = CerebrumLLM(
+        cognitive_engine=cognitive,
+        llm_manager=manager,
+        memory_bridge=bridge
+    )
+
+    # 1. CEREBRUM aprende una memoria importante.
+    cerebrum.responder(
+        "mi proyecto es CEREBRUM"
+    )
+
+    # 2. Esa memoria debe existir.
+    recuerdo = cerebrum.recordar(
+        "CEREBRUM"
+    )
+
+    assert recuerdo is not None
+
+    # 3. Nueva interacción.
+    respuesta = cerebrum.responder(
+        "¿Qué es mi proyecto CEREBRUM?"
+    )
+
+    assert isinstance(
+        respuesta,
+        str
+    )
+
+    # 4. El recuerdo debe poder recuperarse.
+    contexto = cerebrum.obtener_contexto_de_memoria(
+        "CEREBRUM"
+    )
+
+    assert any(
+        "CEREBRUM" in texto
+        for texto in contexto
+    )
+
+    # 5. Debe existir una sesión con ambos turnos.
+    assert (
+        manager
+        .obtener_sesion()
+        .cantidad_mensajes()
+        == 4
     )
