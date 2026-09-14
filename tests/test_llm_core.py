@@ -2700,3 +2700,455 @@ def test_cerebrum_v008_memoria_end_to_end():
         .cantidad_mensajes()
         == 4
     )
+
+def test_reasoning_validator_acepta_conclusion_respaldada():
+    from src.brain.reasoning_validator import ReasoningValidator
+    from src.brain.knowledge import KnowledgeFact
+
+    conclusion = KnowledgeFact(
+        sujeto="cerebrum",
+        relacion="es",
+        objeto="software",
+        confianza=0.9
+    )
+
+    evidencia = [
+        KnowledgeFact(
+            sujeto="cerebrum",
+            relacion="es",
+            objeto="inteligencia",
+            confianza=0.95
+        ),
+        KnowledgeFact(
+            sujeto="inteligencia",
+            relacion="es",
+            objeto="software",
+            confianza=0.8
+        )
+    ]
+
+    resultado = ReasoningValidator().validar(
+        conclusion,
+        evidencia
+    )
+
+    assert resultado["valida"] is True
+    assert resultado["tipo"] == "respaldada"
+    assert round(resultado["confianza"], 3) == 0.885
+
+
+def test_reasoning_validator_rechaza_sin_evidencia():
+    from src.brain.reasoning_validator import ReasoningValidator
+    from src.brain.knowledge import KnowledgeFact
+
+    conclusion = KnowledgeFact(
+        sujeto="cerebrum",
+        relacion="es",
+        objeto="software"
+    )
+
+    resultado = ReasoningValidator().validar(
+        conclusion,
+        []
+    )
+
+    assert resultado["valida"] is False
+    assert resultado["tipo"] == "sin_evidencia"
+
+
+def test_reasoning_validator_rechaza_conclusion_invalida():
+    from src.brain.reasoning_validator import ReasoningValidator
+
+    resultado = ReasoningValidator().validar(
+        None,
+        []
+    )
+
+    assert resultado["valida"] is False
+    assert resultado["confianza"] == 0.0
+    assert resultado["tipo"] == "invalida"
+
+def test_explained_knowledge_inference_descarta_inferencia_sin_evidencia():
+    from src.brain.explained_knowledge_inference import (
+        ExplainedKnowledgeInference
+    )
+    from src.brain.inference_explanation import (
+        InferenceExplanation
+    )
+    from src.brain.knowledge import KnowledgeBase
+
+    knowledge = KnowledgeBase()
+
+    inference = ExplainedKnowledgeInference(
+        knowledge
+    )
+
+    conclusion = knowledge.agregar(
+        "cerebrum",
+        "es",
+        "software"
+    )
+
+    explicacion = InferenceExplanation(
+        conclusion=conclusion,
+        evidencias=[],
+        regla="inferencia transitiva"
+    )
+
+    resultado = (
+        inference.validar_inferencia(
+            explicacion
+        )
+    )
+
+    assert resultado["valida"] is False
+    assert resultado["tipo"] == "sin_evidencia"
+
+def test_confidence_aggregator_combina_confianzas():
+    from src.brain.confidence_aggregator import (
+        ConfidenceAggregator
+    )
+
+    aggregator = ConfidenceAggregator()
+
+    resultado = aggregator.calcular(
+        confianza_conclusion=0.9,
+        confianzas_evidencia=[
+            0.8,
+            0.7
+        ]
+    )
+
+    assert 0.0 <= resultado <= 1.0
+    assert round(resultado, 2) == 0.81
+
+
+def test_confidence_aggregator_normaliza_valores():
+    from src.brain.confidence_aggregator import (
+        ConfidenceAggregator
+    )
+
+    aggregator = ConfidenceAggregator()
+
+    resultado = aggregator.calcular(
+        confianza_conclusion=2.0,
+        confianzas_evidencia=[
+            -1.0,
+            5.0
+        ]
+    )
+
+    assert resultado == 0.7
+
+
+def test_confidence_aggregator_sin_evidencia():
+    from src.brain.confidence_aggregator import (
+        ConfidenceAggregator
+    )
+
+    aggregator = ConfidenceAggregator()
+
+    resultado = aggregator.calcular(
+        confianza_conclusion=0.9,
+        confianzas_evidencia=[]
+    )
+
+    assert round(resultado, 2) == 0.36
+
+
+def test_confidence_aggregator_desde_recuerdos():
+    from src.brain.confidence_aggregator import (
+        ConfidenceAggregator
+    )
+    from src.brain.knowledge import KnowledgeFact
+
+    aggregator = ConfidenceAggregator()
+
+    conclusion = KnowledgeFact(
+        sujeto="cerebrum",
+        relacion="es",
+        objeto="software",
+        confianza=0.9
+    )
+
+    evidencias = [
+        KnowledgeFact(
+            sujeto="cerebrum",
+            relacion="es",
+            objeto="inteligencia",
+            confianza=0.8
+        ),
+        KnowledgeFact(
+            sujeto="inteligencia",
+            relacion="es",
+            objeto="software",
+            confianza=0.7
+        )
+    ]
+
+    resultado = aggregator.desde_recuerdos(
+        conclusion,
+        evidencias
+    )
+
+    assert round(resultado, 2) == 0.81
+
+def test_conflict_detector_detecta_contradiccion():
+    from src.brain.conflict_detector import ConflictDetector
+    from src.brain.knowledge import KnowledgeBase
+
+    knowledge = KnowledgeBase()
+
+    conocimiento = knowledge.agregar(
+        "cerebrum",
+        "es",
+        "software"
+    )
+
+    detector = ConflictDetector(
+        knowledge
+    )
+
+    conclusion = conocimiento.__class__(
+        sujeto="cerebrum",
+        relacion="es",
+        objeto="humano",
+        confianza=0.8
+    )
+
+    conflictos = detector.detectar(
+        conclusion
+    )
+
+    assert len(conflictos) == 1
+    assert conflictos[0].objeto == "software"
+
+
+def test_conflict_detector_no_detecta_conflicto():
+    from src.brain.conflict_detector import ConflictDetector
+    from src.brain.knowledge import KnowledgeBase
+
+    knowledge = KnowledgeBase()
+
+    knowledge.agregar(
+        "cerebrum",
+        "es",
+        "software"
+    )
+
+    detector = ConflictDetector(
+        knowledge
+    )
+
+    conclusion = knowledge.agregar(
+        "cerebrum",
+        "es",
+        "software"
+    )
+
+    conflictos = detector.detectar(
+        conclusion
+    )
+
+    assert conflictos == []
+    assert detector.tiene_conflicto(
+        conclusion
+    ) is False
+
+
+def test_conflict_detector_evaluar():
+    from src.brain.conflict_detector import ConflictDetector
+    from src.brain.knowledge import KnowledgeBase
+
+    knowledge = KnowledgeBase()
+
+    knowledge.agregar(
+        "estrella",
+        "es",
+        "plasma"
+    )
+
+    detector = ConflictDetector(
+        knowledge
+    )
+
+    conclusion = knowledge.agregar(
+        "estrella",
+        "es",
+        "roca"
+    )
+
+    resultado = detector.evaluar(
+        conclusion
+    )
+
+    assert resultado["tiene_conflicto"] is True
+    assert resultado["cantidad"] == 1
+    assert len(
+        resultado["conflictos"]
+    ) == 1
+
+def test_reasoning_result_inicial():
+    from src.brain.reasoning_result import ReasoningResult
+
+    resultado = ReasoningResult()
+
+    assert resultado.conclusiones == []
+    assert resultado.confianza == 0.0
+    assert resultado.valido is False
+    assert resultado.tiene_conflicto is False
+    assert resultado.conflictos == []
+
+
+def test_reasoning_result_propiedades():
+    from src.brain.reasoning_result import ReasoningResult
+
+    resultado = ReasoningResult(
+        conclusiones=["conclusion"],
+        confianza=0.85,
+        valido=True,
+        tiene_conflicto=True,
+        conflictos=["conflicto"]
+    )
+
+    assert resultado.tuvo_resultados is True
+    assert resultado.cantidad_conclusiones == 1
+    assert resultado.cantidad_conflictos == 1
+
+
+def test_reasoning_result_resumen():
+    from src.brain.reasoning_result import ReasoningResult
+
+    resultado = ReasoningResult(
+        confianza=0.8,
+        valido=True
+    )
+
+    resumen = resultado.resumen()
+
+    assert "Confianza: 0.80" in resumen
+    assert "Válido: True" in resumen
+    assert "Conflictos: 0" in resumen
+
+def test_reasoning_validator_valida_resultado_real():
+    from src.brain.reasoning import ReasoningResult
+    from src.brain.reasoning_validator import ReasoningValidator
+
+    resultado = ReasoningResult(
+        conclusion="apruebo",
+        evidencia=[
+            "La premisa es válida.",
+            "Tipo de inferencia: modus_ponens."
+        ],
+        confianza=0.95
+    )
+
+    validacion = (
+        ReasoningValidator()
+        .validar_resultado(
+            resultado
+        )
+    )
+
+    assert validacion["valida"] is True
+    assert validacion["tipo"] == "resultado_valido"
+    assert validacion["confianza"] == 0.95
+
+
+def test_reasoning_validator_rechaza_resultado_sin_evidencia():
+    from src.brain.reasoning import ReasoningResult
+    from src.brain.reasoning_validator import ReasoningValidator
+
+    resultado = ReasoningResult(
+        conclusion="apruebo",
+        evidencia=[],
+        confianza=0.8
+    )
+
+    validacion = (
+        ReasoningValidator()
+        .validar_resultado(
+            resultado
+        )
+    )
+
+    assert validacion["valida"] is False
+    assert validacion["tipo"] == "sin_evidencia"
+
+
+def test_reasoning_validator_rechaza_resultado_sin_confianza():
+    from src.brain.reasoning_validator import ReasoningValidator
+
+    class ResultadoSinConfianza:
+        conclusion = "apruebo"
+        evidencia = [
+            "evidencia válida"
+        ]
+
+    validacion = (
+        ReasoningValidator()
+        .validar_resultado(
+            ResultadoSinConfianza()
+        )
+    )
+
+    assert validacion["valida"] is False
+    assert validacion["tipo"] == "sin_confianza"
+
+def test_reasoning_validator_usa_confidence_aggregator():
+    from src.brain.reasoning_validator import ReasoningValidator
+    from src.brain.knowledge import KnowledgeFact
+
+    conclusion = KnowledgeFact(
+        sujeto="cerebrum",
+        relacion="es",
+        objeto="software",
+        confianza=0.9
+    )
+
+    evidencias = [
+        KnowledgeFact(
+            sujeto="cerebrum",
+            relacion="es",
+            objeto="inteligencia",
+            confianza=0.8
+        ),
+        KnowledgeFact(
+            sujeto="inteligencia",
+            relacion="es",
+            objeto="software",
+            confianza=0.7
+        )
+    ]
+
+    resultado = ReasoningValidator().validar(
+        conclusion,
+        evidencias
+    )
+
+    assert resultado["valida"] is True
+    assert resultado["tipo"] == "respaldada"
+    assert round(
+        resultado["confianza"],
+        2
+    ) == 0.81
+
+
+def test_reasoning_validator_rechaza_evidencias_invalidas():
+    from src.brain.reasoning_validator import ReasoningValidator
+    from src.brain.knowledge import KnowledgeFact
+
+    conclusion = KnowledgeFact(
+        sujeto="cerebrum",
+        relacion="es",
+        objeto="software",
+        confianza=0.9
+    )
+
+    resultado = ReasoningValidator().validar(
+        conclusion,
+        ["evidencia inválida"]
+    )
+
+    assert resultado["valida"] is False
+    assert resultado["tipo"] == "sin_evidencia"
