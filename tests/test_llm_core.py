@@ -1,27 +1,37 @@
 """
 Pruebas del LLM Core.
 
-CEREBRUM v0.0.6 Alpha
+CEREBRUM v0.0.9 Alpha
 """
 
-from src.brain.cognitive_engine import CognitiveEngine
-from src.brain.cognitive_llm_bridge import CognitiveLLMBridge
+import pytest
 
-from src.brain.llm import LLMRequest, LLMResponse
-from src.brain.llm_config import LLMConfig
-from src.brain.llm_context import LLMContext
-from src.brain.llm_context_builder import LLMContextBuilder
-from src.brain.llm_conversation import LLMConversation
-from src.brain.llm_engine import LLMEngine
-from src.brain.llm_factory import LLMFactory
-from src.brain.llm_manager import LLMManager
-from src.brain.llm_response_formatter import LLMResponseFormatter
-from src.brain.llm_service import LLMService
+from brain.cognitive_engine import CognitiveEngine
+from brain.cognitive_llm_bridge import CognitiveLLMBridge
 
-from src.brain.mock_llm import MockLLMProvider
-from src.brain.intent import Intent
-from src.brain.cognitive_context_selector import CognitiveContextSelector
-from src.brain.cerebrum_llm import CerebrumLLM
+from brain.llm import LLMRequest, LLMResponse
+from brain.llm_config import LLMConfig
+from brain.llm_context import LLMContext
+from brain.llm_context_builder import LLMContextBuilder
+from brain.llm_conversation import LLMConversation
+from brain.llm_engine import LLMEngine
+from brain.llm_factory import LLMFactory
+from brain.llm_manager import LLMManager
+from brain.llm_response_formatter import LLMResponseFormatter
+from brain.llm_service import LLMService
+
+from brain.mock_llm import MockLLMProvider
+from brain.intent import Intent
+from brain.cognitive_context_selector import CognitiveContextSelector
+from brain.cerebrum_llm import CerebrumLLM
+
+
+@pytest.fixture(autouse=True)
+def aislar_directorio_de_trabajo(tmp_path, monkeypatch):
+    """Evita que las pruebas de integración creen archivos en ``data/``."""
+
+    monkeypatch.chdir(tmp_path)
+
 
 def test_llm_context_construye():
     contexto = LLMContext(
@@ -412,7 +422,7 @@ def test_cognitive_llm_bridge_mantiene_conversacion():
 
     assert "usuario: Primer mensaje" in historial
     assert "usuario: Segundo mensaje" in historial
-from src.brain.llm_orchestrator import LLMOrchestrator
+from brain.llm_orchestrator import LLMOrchestrator
 
 
 def test_llm_orchestrator_procesa():
@@ -497,7 +507,7 @@ def test_llm_orchestrator_mantiene_historial():
 
     assert "usuario: Primer mensaje" in historial
     assert "usuario: Segundo mensaje" in historial
-from src.brain.llm_errors import (
+from brain.llm_errors import (
     LLMProviderError,
     LLMResponseError,
 )
@@ -582,8 +592,8 @@ def test_llm_engine_rechaza_tipo_de_respuesta_invalido():
         raise AssertionError(
             "Se esperaba LLMResponseError."
         )
-from src.brain.cognitive_prompt_builder import CognitivePromptBuilder
-from src.brain.llm_context_limits import LLMContextLimits
+from brain.cognitive_prompt_builder import CognitivePromptBuilder
+from brain.llm_context_limits import LLMContextLimits
 
 
 def test_context_limits_limita_lista():
@@ -667,7 +677,7 @@ def test_cognitive_prompt_builder_omite_datos_invalidos():
 
     assert "dato válido" in prompt
     assert prompt.count("dato válido") == 1
-from src.brain.llm_errors import LLMResponseError
+from brain.llm_errors import LLMResponseError
 
 
 def test_llm_service_rechaza_mensaje_vacio():
@@ -719,7 +729,7 @@ def test_llm_service_rechaza_mensaje_no_texto():
         raise AssertionError(
             "Se esperaba LLMResponseError."
         )
-from src.brain.llm_environment import LLMEnvironment
+from brain.llm_environment import LLMEnvironment
 
 
 def test_llm_environment_valores_por_defecto(monkeypatch):
@@ -778,7 +788,7 @@ def test_llm_environment_carga_variables(monkeypatch):
     assert config.modelo == "cerebrum-test"
     assert config.temperatura == 0.9
     assert config.max_tokens == 500
-from src.brain.llm_manager import LLMManager
+from brain.llm_manager import LLMManager
 
 
 def test_llm_manager_desde_entorno(monkeypatch):
@@ -801,7 +811,7 @@ def test_llm_manager_desde_entorno(monkeypatch):
         MockLLMProvider
     )
 def test_cerebrum_llm_procesa():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     cognitive = CognitiveEngine()
 
@@ -830,7 +840,7 @@ def test_cerebrum_llm_procesa():
 
 
 def test_cerebrum_llm_responder():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     cognitive = CognitiveEngine()
 
@@ -856,7 +866,7 @@ def test_cerebrum_llm_responder():
 
 
 def test_cerebrum_llm_integra_inferencia():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     cognitive = CognitiveEngine()
 
@@ -883,7 +893,7 @@ def test_cerebrum_llm_integra_inferencia():
 
 
 def test_cerebrum_llm_limpia_conversacion():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     manager = LLMManager(
         LLMConfig(proveedor="mock")
@@ -912,7 +922,7 @@ def test_cerebrum_llm_limpia_conversacion():
         == 0
     )
 def test_openai_provider_construye_request():
-    from src.brain.openai_provider import OpenAIProvider
+    from brain.openai_provider import OpenAIProvider
 
     class FakeResponse:
         output_text = "Respuesta de prueba"
@@ -1007,7 +1017,7 @@ def test_llm_manager_desde_entorno_usa_configuracion(monkeypatch):
         MockLLMProvider
     )
 def test_cerebrum_llm_flujo_completo():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     manager = LLMManager(
         LLMConfig(
@@ -1041,10 +1051,10 @@ def test_cerebrum_llm_flujo_completo():
         == 4
     )
 def test_cognitive_context_retriever_recupera_conocimiento():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
-    from src.brain.intent_detector import IntentDetector
+    from brain.intent_detector import IntentDetector
 
     cognitive = CognitiveEngine()
 
@@ -1095,10 +1105,10 @@ def test_cognitive_context_retriever_recupera_conocimiento():
 
 
 def test_cognitive_context_retriever_respeta_limite():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
-    from src.brain.intent_detector import IntentDetector
+    from brain.intent_detector import IntentDetector
 
     cognitive = CognitiveEngine()
 
@@ -1128,7 +1138,7 @@ def test_cognitive_context_retriever_respeta_limite():
 
 
 def test_cognitive_context_retriever_devuelve_estructura():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
 
@@ -1155,10 +1165,10 @@ def test_cognitive_context_retriever_devuelve_estructura():
     assert resultado["conversacion"] == ""
      
 def test_cognitive_context_retriever_recupera_conversacion():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
-    from src.brain.intent_detector import IntentDetector
+    from brain.intent_detector import IntentDetector
 
     cognitive = CognitiveEngine()
 
@@ -1185,10 +1195,10 @@ def test_cognitive_context_retriever_recupera_conversacion():
 
 
 def test_cognitive_context_retriever_omite_conversacion_si_no_corresponde():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
-    from src.brain.intent import Intent
+    from brain.intent import Intent
 
     cognitive = CognitiveEngine()
 
@@ -1211,7 +1221,7 @@ def test_cognitive_context_retriever_omite_conversacion_si_no_corresponde():
 
 
 def test_cognitive_context_retriever_estructura_completa():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
 
@@ -1239,7 +1249,7 @@ def test_cognitive_context_retriever_estructura_completa():
     assert resultado["conversacion"] == ""
      
 def test_cerebrum_llm_flujo_end_to_end_v007():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     manager = LLMManager(
         LLMConfig(
@@ -1310,7 +1320,7 @@ def test_cerebrum_llm_flujo_end_to_end_v007():
     assert intencion.tipo == "afirmacion"
     
 def test_cognitive_context_retriever_recupera_memoria_relevante():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
 
@@ -1349,7 +1359,7 @@ def test_cognitive_context_retriever_recupera_memoria_relevante():
 
 
 def test_cognitive_context_retriever_limita_memoria():
-    from src.brain.cognitive_context_retriever import (
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
 
@@ -1447,7 +1457,7 @@ def test_cognitive_context_selector_resolucion():
     }
 
 def test_cognitive_strategy_router_explicacion():
-    from src.brain.cognitive_strategy_router import (
+    from brain.cognitive_strategy_router import (
         CognitiveStrategyRouter
     )
 
@@ -1465,7 +1475,7 @@ def test_cognitive_strategy_router_explicacion():
 
 
 def test_cognitive_strategy_router_memoria():
-    from src.brain.cognitive_strategy_router import (
+    from brain.cognitive_strategy_router import (
         CognitiveStrategyRouter
     )
 
@@ -1482,7 +1492,7 @@ def test_cognitive_strategy_router_memoria():
 
 
 def test_cognitive_strategy_router_ninguna():
-    from src.brain.cognitive_strategy_router import (
+    from brain.cognitive_strategy_router import (
         CognitiveStrategyRouter
     )
 
@@ -1495,7 +1505,7 @@ def test_cognitive_strategy_router_ninguna():
 
 
 def test_cognitive_strategy_router_instrucciones():
-    from src.brain.cognitive_strategy_router import (
+    from brain.cognitive_strategy_router import (
         CognitiveStrategyRouter
     )
 
@@ -1511,7 +1521,7 @@ def test_cognitive_strategy_router_instrucciones():
     )
 
 def test_cerebrum_llm_selecciona_estrategia():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     manager = LLMManager(
         LLMConfig(proveedor="mock")
@@ -1531,7 +1541,7 @@ def test_cerebrum_llm_selecciona_estrategia():
 
 
 def test_cerebrum_llm_contexto_recuperado():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     cognitive = CognitiveEngine()
 
@@ -1561,7 +1571,7 @@ def test_cerebrum_llm_contexto_recuperado():
 
 
 def test_cerebrum_llm_prompt_incluye_estrategia():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     manager = LLMManager(
         LLMConfig(proveedor="mock")
@@ -1582,7 +1592,7 @@ def test_cerebrum_llm_prompt_incluye_estrategia():
     )
 
 def test_cerebrum_v007_flujo_completo():
-    from src.brain.cerebrum_llm import CerebrumLLM
+    from brain.cerebrum_llm import CerebrumLLM
 
     cognitive = CognitiveEngine()
 
@@ -1655,9 +1665,9 @@ def test_cerebrum_v007_flujo_completo():
     )
 
 def test_memory_bridge_guardar_memoria_importante():
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory import Memory
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_service import MemoryService
+    from brain.memory import Memory
 
     memoria = Memory(
         file_path="data/test_memory_bridge.json"
@@ -1680,9 +1690,9 @@ def test_memory_bridge_guardar_memoria_importante():
 
 
 def test_memory_bridge_recordar():
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory import Memory
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_service import MemoryService
+    from brain.memory import Memory
 
     memoria = Memory(
         file_path="data/test_memory_bridge.json"
@@ -1711,9 +1721,9 @@ def test_memory_bridge_recordar():
 
 
 def test_memory_bridge_recuperar_relevante():
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory import Memory
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_service import MemoryService
+    from brain.memory import Memory
 
     memoria = Memory(
         file_path="data/test_memory_bridge.json"
@@ -1741,9 +1751,9 @@ def test_memory_bridge_recuperar_relevante():
 
 
 def test_memory_bridge_contexto_para():
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory import Memory
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_service import MemoryService
+    from brain.memory import Memory
 
     memoria = Memory(
         file_path="data/test_memory_bridge.json"
@@ -1774,9 +1784,9 @@ def test_memory_bridge_contexto_para():
     )
 
 def test_memory_bridge_obtener_contexto_limita():
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory import Memory
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_service import MemoryService
+    from brain.memory import Memory
 
     memoria = Memory(
         file_path="data/test_memory_bridge.json"
@@ -1811,9 +1821,9 @@ def test_memory_bridge_obtener_contexto_limita():
 
 
 def test_memory_bridge_contexto_para_devuelve_texto():
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory import Memory
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_service import MemoryService
+    from brain.memory import Memory
 
     memoria = Memory(
         file_path="data/test_memory_bridge.json"
@@ -1848,13 +1858,13 @@ def test_memory_bridge_contexto_para_devuelve_texto():
     )
 
 def test_cerebrum_llm_integra_memory_bridge():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.cognitive_context_retriever import (
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
-    from src.brain.cognitive_context_selector import (
+    from brain.cognitive_context_selector import (
         CognitiveContextSelector
     )
 
@@ -1903,13 +1913,13 @@ def test_cerebrum_llm_integra_memory_bridge():
 
 
 def test_cerebrum_llm_contexto_recuperado_usa_memory_bridge():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.cognitive_context_retriever import (
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
+    from brain.cognitive_context_retriever import (
         CognitiveContextRetriever
     )
-    from src.brain.cognitive_context_selector import (
+    from brain.cognitive_context_selector import (
         CognitiveContextSelector
     )
 
@@ -1965,7 +1975,7 @@ def test_cerebrum_llm_contexto_recuperado_usa_memory_bridge():
     )
 
 def test_cerebrum_llm_expone_memory_bridge():
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory_bridge import MemoryBridge
 
     cognitive = CognitiveEngine()
 
@@ -1987,9 +1997,9 @@ def test_cerebrum_llm_expone_memory_bridge():
 
 
 def test_cerebrum_llm_puede_guardar_y_recordar():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_cerebrum_memory_bridge_3.json"
@@ -2026,9 +2036,9 @@ def test_cerebrum_llm_puede_guardar_y_recordar():
 
 
 def test_cerebrum_llm_obtiene_contexto_de_memoria():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_cerebrum_memory_bridge_4.json"
@@ -2063,9 +2073,9 @@ def test_cerebrum_llm_obtiene_contexto_de_memoria():
 
 
 def test_cerebrum_llm_obtiene_memorias_relevantes():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_cerebrum_memory_bridge_5.json"
@@ -2098,9 +2108,9 @@ def test_cerebrum_llm_obtiene_memorias_relevantes():
     ) > 0
 
 def test_memory_policy_guarda_proyecto():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_policy import MemoryPolicy
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_policy import MemoryPolicy
 
     memoria = Memory(
         file_path="data/test_memory_policy_1.json"
@@ -2124,9 +2134,9 @@ def test_memory_policy_guarda_proyecto():
 
 
 def test_memory_policy_no_guarda_texto_general():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_policy import MemoryPolicy
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_policy import MemoryPolicy
 
     memoria = Memory(
         file_path="data/test_memory_policy_2.json"
@@ -2148,9 +2158,9 @@ def test_memory_policy_no_guarda_texto_general():
 
 
 def test_memory_policy_guardar_si_corresponde():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_policy import MemoryPolicy
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_policy import MemoryPolicy
 
     memoria = Memory(
         file_path="data/test_memory_policy_3.json"
@@ -2175,10 +2185,10 @@ def test_memory_policy_guardar_si_corresponde():
     assert len(recuerdos) == 1
 
 def test_memory_bridge_evalua_memoria():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_policy import MemoryPolicy
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_policy import MemoryPolicy
 
     memoria = Memory(
         file_path="data/test_memory_bridge_policy.json"
@@ -2203,10 +2213,10 @@ def test_memory_bridge_evalua_memoria():
 
 
 def test_memory_bridge_guardar_usa_policy():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_policy import MemoryPolicy
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_policy import MemoryPolicy
 
     memoria = Memory(
         file_path="data/test_memory_bridge_policy_2.json"
@@ -2233,10 +2243,10 @@ def test_memory_bridge_guardar_usa_policy():
 
 
 def test_memory_bridge_no_guarda_general():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_policy import MemoryPolicy
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_policy import MemoryPolicy
 
     memoria = Memory(
         file_path="data/test_memory_bridge_policy_3.json"
@@ -2260,9 +2270,9 @@ def test_memory_bridge_no_guarda_general():
     assert memoria.obtener_todo() == []
 
 def test_cerebrum_llm_guarda_memoria_importante_automaticamente():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_cerebrum_auto_memory.json"
@@ -2303,9 +2313,9 @@ def test_cerebrum_llm_guarda_memoria_importante_automaticamente():
 
 
 def test_cerebrum_llm_no_guarda_memoria_general():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_cerebrum_auto_memory_2.json"
@@ -2338,9 +2348,9 @@ def test_cerebrum_llm_no_guarda_memoria_general():
 
 
 def test_cerebrum_llm_memoria_no_rompe_respuesta():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_cerebrum_memoria_fallida.json"
@@ -2386,7 +2396,7 @@ def test_cerebrum_llm_memoria_no_rompe_respuesta():
     )
 
 def test_memory_ranker_prioriza_relevancia():
-    from src.brain.memory_ranker import MemoryRanker
+    from brain.memory_ranker import MemoryRanker
 
     ranker = MemoryRanker()
 
@@ -2413,7 +2423,7 @@ def test_memory_ranker_prioriza_relevancia():
 
 
 def test_memory_ranker_puntua_importancia():
-    from src.brain.memory_ranker import MemoryRanker
+    from brain.memory_ranker import MemoryRanker
 
     ranker = MemoryRanker()
 
@@ -2431,7 +2441,7 @@ def test_memory_ranker_puntua_importancia():
 
 
 def test_memory_ranker_ignora_recuerdo_invalido():
-    from src.brain.memory_ranker import MemoryRanker
+    from brain.memory_ranker import MemoryRanker
 
     ranker = MemoryRanker()
 
@@ -2448,7 +2458,7 @@ def test_memory_ranker_ignora_recuerdo_invalido():
 def test_memory_ranker_recencia_es_valida():
     from datetime import datetime
 
-    from src.brain.memory_ranker import MemoryRanker
+    from brain.memory_ranker import MemoryRanker
 
     ranker = MemoryRanker()
 
@@ -2468,10 +2478,10 @@ def test_memory_ranker_recencia_es_valida():
     assert puntuacion > 0.0
 
 def test_memory_bridge_usa_memory_ranker():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
-    from src.brain.memory_ranker import MemoryRanker
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
+    from brain.memory_ranker import MemoryRanker
 
     memoria = Memory(
         file_path="data/test_memory_bridge_ranker.json"
@@ -2508,9 +2518,9 @@ def test_memory_bridge_usa_memory_ranker():
 
 
 def test_memory_bridge_contexto_respeta_ranking():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_memory_bridge_ranker_2.json"
@@ -2546,9 +2556,9 @@ def test_memory_bridge_contexto_respeta_ranking():
     )
 
 def test_cerebrum_llm_integra_memoria_persistente_en_contexto():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     memoria = Memory(
         file_path="data/test_v008_integracion_memoria.json"
@@ -2588,9 +2598,9 @@ def test_cerebrum_llm_integra_memoria_persistente_en_contexto():
     )
 
 def test_memory_bridge_persiste_entre_instancias():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     ruta = "data/test_v008_persistencia.json"
 
@@ -2630,9 +2640,9 @@ def test_memory_bridge_persiste_entre_instancias():
     )
 
 def test_cerebrum_v008_memoria_end_to_end():
-    from src.brain.memory import Memory
-    from src.brain.memory_service import MemoryService
-    from src.brain.memory_bridge import MemoryBridge
+    from brain.memory import Memory
+    from brain.memory_service import MemoryService
+    from brain.memory_bridge import MemoryBridge
 
     ruta = "data/test_v008_e2e.json"
 
@@ -2702,8 +2712,8 @@ def test_cerebrum_v008_memoria_end_to_end():
     )
 
 def test_reasoning_validator_acepta_conclusion_respaldada():
-    from src.brain.reasoning_validator import ReasoningValidator
-    from src.brain.knowledge import KnowledgeFact
+    from brain.reasoning_validator import ReasoningValidator
+    from brain.knowledge import KnowledgeFact
 
     conclusion = KnowledgeFact(
         sujeto="cerebrum",
@@ -2738,8 +2748,8 @@ def test_reasoning_validator_acepta_conclusion_respaldada():
 
 
 def test_reasoning_validator_rechaza_sin_evidencia():
-    from src.brain.reasoning_validator import ReasoningValidator
-    from src.brain.knowledge import KnowledgeFact
+    from brain.reasoning_validator import ReasoningValidator
+    from brain.knowledge import KnowledgeFact
 
     conclusion = KnowledgeFact(
         sujeto="cerebrum",
@@ -2757,7 +2767,7 @@ def test_reasoning_validator_rechaza_sin_evidencia():
 
 
 def test_reasoning_validator_rechaza_conclusion_invalida():
-    from src.brain.reasoning_validator import ReasoningValidator
+    from brain.reasoning_validator import ReasoningValidator
 
     resultado = ReasoningValidator().validar(
         None,
@@ -2769,13 +2779,13 @@ def test_reasoning_validator_rechaza_conclusion_invalida():
     assert resultado["tipo"] == "invalida"
 
 def test_explained_knowledge_inference_descarta_inferencia_sin_evidencia():
-    from src.brain.explained_knowledge_inference import (
+    from brain.explained_knowledge_inference import (
         ExplainedKnowledgeInference
     )
-    from src.brain.inference_explanation import (
+    from brain.inference_explanation import (
         InferenceExplanation
     )
-    from src.brain.knowledge import KnowledgeBase
+    from brain.knowledge import KnowledgeBase
 
     knowledge = KnowledgeBase()
 
@@ -2805,7 +2815,7 @@ def test_explained_knowledge_inference_descarta_inferencia_sin_evidencia():
     assert resultado["tipo"] == "sin_evidencia"
 
 def test_confidence_aggregator_combina_confianzas():
-    from src.brain.confidence_aggregator import (
+    from brain.confidence_aggregator import (
         ConfidenceAggregator
     )
 
@@ -2824,7 +2834,7 @@ def test_confidence_aggregator_combina_confianzas():
 
 
 def test_confidence_aggregator_normaliza_valores():
-    from src.brain.confidence_aggregator import (
+    from brain.confidence_aggregator import (
         ConfidenceAggregator
     )
 
@@ -2842,7 +2852,7 @@ def test_confidence_aggregator_normaliza_valores():
 
 
 def test_confidence_aggregator_sin_evidencia():
-    from src.brain.confidence_aggregator import (
+    from brain.confidence_aggregator import (
         ConfidenceAggregator
     )
 
@@ -2857,10 +2867,10 @@ def test_confidence_aggregator_sin_evidencia():
 
 
 def test_confidence_aggregator_desde_recuerdos():
-    from src.brain.confidence_aggregator import (
+    from brain.confidence_aggregator import (
         ConfidenceAggregator
     )
-    from src.brain.knowledge import KnowledgeFact
+    from brain.knowledge import KnowledgeFact
 
     aggregator = ConfidenceAggregator()
 
@@ -2894,8 +2904,8 @@ def test_confidence_aggregator_desde_recuerdos():
     assert round(resultado, 2) == 0.81
 
 def test_conflict_detector_detecta_contradiccion():
-    from src.brain.conflict_detector import ConflictDetector
-    from src.brain.knowledge import KnowledgeBase
+    from brain.conflict_detector import ConflictDetector
+    from brain.knowledge import KnowledgeBase
 
     knowledge = KnowledgeBase()
 
@@ -2925,8 +2935,8 @@ def test_conflict_detector_detecta_contradiccion():
 
 
 def test_conflict_detector_no_detecta_conflicto():
-    from src.brain.conflict_detector import ConflictDetector
-    from src.brain.knowledge import KnowledgeBase
+    from brain.conflict_detector import ConflictDetector
+    from brain.knowledge import KnowledgeBase
 
     knowledge = KnowledgeBase()
 
@@ -2957,8 +2967,8 @@ def test_conflict_detector_no_detecta_conflicto():
 
 
 def test_conflict_detector_evaluar():
-    from src.brain.conflict_detector import ConflictDetector
-    from src.brain.knowledge import KnowledgeBase
+    from brain.conflict_detector import ConflictDetector
+    from brain.knowledge import KnowledgeBase
 
     knowledge = KnowledgeBase()
 
@@ -2989,7 +2999,7 @@ def test_conflict_detector_evaluar():
     ) == 1
 
 def test_reasoning_result_inicial():
-    from src.brain.reasoning_result import ReasoningResult
+    from brain.reasoning_result import ReasoningResult
 
     resultado = ReasoningResult()
 
@@ -3001,7 +3011,7 @@ def test_reasoning_result_inicial():
 
 
 def test_reasoning_result_propiedades():
-    from src.brain.reasoning_result import ReasoningResult
+    from brain.reasoning_result import ReasoningResult
 
     resultado = ReasoningResult(
         conclusiones=["conclusion"],
@@ -3017,7 +3027,7 @@ def test_reasoning_result_propiedades():
 
 
 def test_reasoning_result_resumen():
-    from src.brain.reasoning_result import ReasoningResult
+    from brain.reasoning_result import ReasoningResult
 
     resultado = ReasoningResult(
         confianza=0.8,
@@ -3031,8 +3041,8 @@ def test_reasoning_result_resumen():
     assert "Conflictos: 0" in resumen
 
 def test_reasoning_validator_valida_resultado_real():
-    from src.brain.reasoning import ReasoningResult
-    from src.brain.reasoning_validator import ReasoningValidator
+    from brain.reasoning import ReasoningResult
+    from brain.reasoning_validator import ReasoningValidator
 
     resultado = ReasoningResult(
         conclusion="apruebo",
@@ -3056,8 +3066,8 @@ def test_reasoning_validator_valida_resultado_real():
 
 
 def test_reasoning_validator_rechaza_resultado_sin_evidencia():
-    from src.brain.reasoning import ReasoningResult
-    from src.brain.reasoning_validator import ReasoningValidator
+    from brain.reasoning import ReasoningResult
+    from brain.reasoning_validator import ReasoningValidator
 
     resultado = ReasoningResult(
         conclusion="apruebo",
@@ -3077,7 +3087,7 @@ def test_reasoning_validator_rechaza_resultado_sin_evidencia():
 
 
 def test_reasoning_validator_rechaza_resultado_sin_confianza():
-    from src.brain.reasoning_validator import ReasoningValidator
+    from brain.reasoning_validator import ReasoningValidator
 
     class ResultadoSinConfianza:
         conclusion = "apruebo"
@@ -3096,8 +3106,8 @@ def test_reasoning_validator_rechaza_resultado_sin_confianza():
     assert validacion["tipo"] == "sin_confianza"
 
 def test_reasoning_validator_usa_confidence_aggregator():
-    from src.brain.reasoning_validator import ReasoningValidator
-    from src.brain.knowledge import KnowledgeFact
+    from brain.reasoning_validator import ReasoningValidator
+    from brain.knowledge import KnowledgeFact
 
     conclusion = KnowledgeFact(
         sujeto="cerebrum",
@@ -3135,8 +3145,8 @@ def test_reasoning_validator_usa_confidence_aggregator():
 
 
 def test_reasoning_validator_rechaza_evidencias_invalidas():
-    from src.brain.reasoning_validator import ReasoningValidator
-    from src.brain.knowledge import KnowledgeFact
+    from brain.reasoning_validator import ReasoningValidator
+    from brain.knowledge import KnowledgeFact
 
     conclusion = KnowledgeFact(
         sujeto="cerebrum",

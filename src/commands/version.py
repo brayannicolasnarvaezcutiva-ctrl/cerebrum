@@ -13,4 +13,4 @@ def execute():
     """Muestra la versión de CEREBRUM."""
 
     console.print("[green]CEREBRUM[/green]")
-    console.print("Versión: 0.0.2 Alpha")
+    console.print("Versión: 0.0.9 Alpha")

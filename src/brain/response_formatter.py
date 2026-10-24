@@ -2,7 +2,7 @@
 CEREBRUM
 Formateador de respuestas del procesador.
 
-v0.0.4 Alpha - Reasoning Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 

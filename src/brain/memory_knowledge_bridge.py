@@ -2,7 +2,7 @@
 CEREBRUM
 Puente entre memoria y conocimiento estructurado.
 
-v0.0.5 Alpha - Cognitive Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .knowledge import KnowledgeBase, KnowledgeFact
@@ -50,7 +50,13 @@ class MemoryKnowledgeBridge:
         if isinstance(recuerdos, str):
             return [recuerdos]
 
-        return list(recuerdos)
+        return [
+            recuerdo["contenido"]
+            for recuerdo in recuerdos
+            if isinstance(recuerdo, dict)
+            and isinstance(recuerdo.get("contenido"), str)
+            and recuerdo["contenido"].strip()
+        ]
 
     def aprender_desde_memoria(
         self,

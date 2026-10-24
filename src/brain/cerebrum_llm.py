@@ -2,7 +2,7 @@
 CEREBRUM
 Fachada de alto nivel para Cognitive Core + LLM Core.
 
-v0.0.8 Alpha - Memory Bridge
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .cognitive_context_retriever import CognitiveContextRetriever
@@ -12,7 +12,7 @@ from .cognitive_strategy_router import CognitiveStrategyRouter
 from .llm import LLMResponse
 from .llm_manager import LLMManager
 from .memory_bridge import MemoryBridge
-from src.brain.intent import Intent
+from .intent import Intent
 
 
 class CerebrumLLM:
@@ -116,7 +116,10 @@ class CerebrumLLM:
             self.context_retriever
             .recuperar(
                 intencion,
-                conversacion=conversacion
+                conversacion=conversacion,
+                resultado_razonamiento=(
+                    resultado.resultado_razonamiento
+                )
             )
         )
 
@@ -380,11 +383,6 @@ class CerebrumLLM:
         """Elimina toda la memoria persistente."""
 
         return self.memory_bridge.limpiar()
-
-    def limpiar_conversacion(self):
-        """Limpia la conversación actual."""
-
-        self.llm_manager.limpiar_conversacion()
 
     def limpiar_conversacion(self):
         """Limpia la conversación actual."""

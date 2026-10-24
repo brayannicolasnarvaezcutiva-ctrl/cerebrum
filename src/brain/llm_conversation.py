@@ -102,6 +102,26 @@ class LLMConversation:
 
         return list(self.mensajes)
 
+    def retirar_ultimo(
+        self,
+        rol: str | None = None,
+        contenido: str | None = None
+    ) -> ConversationMessage | None:
+        """Retira el último mensaje si coincide con el turno esperado."""
+
+        if not self.mensajes:
+            return None
+
+        mensaje = self.mensajes[-1]
+
+        if rol is not None and mensaje.rol != rol:
+            return None
+
+        if contenido is not None and mensaje.contenido != contenido:
+            return None
+
+        return self.mensajes.pop()
+
     def limpiar(self):
         """Elimina todo el historial."""
 

@@ -2,13 +2,12 @@
 CEREBRUM
 Fábrica de proveedores LLM.
 
-v0.0.6 Alpha - LLM Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .llm import LLMProvider
 from .llm_config import LLMConfig
 from .mock_llm import MockLLMProvider
-from .openai_provider import OpenAIProvider
 
 
 class LLMFactory:
@@ -36,6 +35,10 @@ class LLMFactory:
                 raise ValueError(
                     "OpenAI requiere modo='online'."
                 )
+
+            # OpenAI es opcional: el proveedor mock debe poder funcionar
+            # sin cargar su SDK ni sus dependencias binarias.
+            from .openai_provider import OpenAIProvider
 
             return OpenAIProvider(
                 modelo=config.modelo,

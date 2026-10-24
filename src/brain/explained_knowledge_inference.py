@@ -2,7 +2,7 @@
 CEREBRUM
 Inferencia de conocimiento con explicación y validación.
 
-v0.0.9 Alpha - Reasoning Upgrade
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .knowledge import KnowledgeBase
@@ -43,65 +43,39 @@ class ExplainedKnowledgeInference:
         A es C junto con su explicación.
         """
 
-        hechos = self.knowledge_base.obtener_todo()
-
         explicaciones = []
 
-        for primero in hechos:
-            if primero.relacion != "es":
+        for primero, segundo, candidato in self.inference.candidatos_es():
+            conclusion = self.knowledge_base.agregar(
+                sujeto=candidato.sujeto,
+                relacion=candidato.relacion,
+                objeto=candidato.objeto,
+                confianza=candidato.confianza
+            )
+
+            if conclusion is None:
                 continue
 
-            for segundo in hechos:
-                if segundo.relacion != "es":
-                    continue
+            explicacion = self.explainer.explicar_transitiva(
+                primero=primero,
+                segundo=segundo,
+                conclusion=conclusion
+            )
 
-                if primero.objeto != segundo.sujeto:
-                    continue
+            validacion = self.validator.validar(
+                conclusion=conclusion,
+                evidencias=[primero, segundo]
+            )
 
-                if primero.sujeto == segundo.objeto:
-                    continue
+            if not validacion["valida"]:
+                continue
 
-                conclusion = self.knowledge_base.agregar(
-                    sujeto=primero.sujeto,
-                    relacion="es",
-                    objeto=segundo.objeto,
-                    confianza=min(
-                        primero.confianza,
-                        segundo.confianza
-                    )
-                )
-
-                if conclusion is None:
-                    continue
-
-                explicacion = (
-                    self.explainer.explicar_transitiva(
-                        primero=primero,
-                        segundo=segundo,
-                        conclusion=conclusion
-                    )
-                )
-
-                validacion = self.validator.validar(
-                    conclusion=conclusion,
-                    evidencias=[
-                        primero,
-                        segundo
-                    ]
-                )
-
-                if not validacion["valida"]:
-                    continue
-
-                if not any(
-                    existente.conclusion == conclusion
-                    and existente.evidencias
-                    == explicacion.evidencias
-                    for existente in explicaciones
-                ):
-                    explicaciones.append(
-                        explicacion
-                    )
+            if not any(
+                existente.conclusion == conclusion
+                and existente.evidencias == explicacion.evidencias
+                for existente in explicaciones
+            ):
+                explicaciones.append(explicacion)
 
         return explicaciones
 

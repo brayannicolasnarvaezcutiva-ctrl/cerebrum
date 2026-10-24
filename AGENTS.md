@@ -5,101 +5,54 @@
 CEREBRUM is a modular AI project developed in Python.
 
 Current version:
-v0.0.4 Alpha — Reasoning Core
+v0.0.9 Alpha — preparation toward v0.1.0
 
 ## Current architecture
 
-src/
-├── brain/
-│   ├── context.py
-│   ├── engine.py
-│   ├── inference.py
-│   ├── intents.py
-│   ├── logic.py
-│   ├── memory.py
-│   ├── processor.py
-│   └── reasoning.py
-├── commands/
-├── core/
-└── main.py
+`src/` is the package root. Internal modules use the `brain`, `commands`, and
+`core` package namespaces; imports inside `brain` are relative.
 
-## Current capabilities
+```text
+main -> core.App -> commands.CommandManager -> BrainEngine -> BrainProcessor
+                                                     ├─ Context
+                                                     ├─ MemoryService -> Memory
+                                                     └─ ReasoningRequestHandler
 
-CEREBRUM currently has:
-
-- command system
-- intent detection
-- persistent memory
-- memory categories
-- memory importance
-- memory search
-- memory updates
-- memory deletion
-- duplicate prevention
-- conversation context
-- associative memory
-- reasoning engine
-- inference engine
-- logical premise validation
-- contradiction detection
-- basic modus ponens inference
-
-## Current goal
-
-Improve the architecture of the reasoning system without changing
-the already working behavior.
+ChatController -> CerebrumLLM -> CognitiveEngine -> KnowledgeReasoning
+                                            ├─ MemoryBridge
+                                            └─ LLMManager
+```
 
 ## Important rules
 
-1. Do not delete existing functionality.
-2. Do not rewrite the project from scratch.
-3. Do not remove Memory, Context, Reasoning, Inference, or Logic.
-4. Preserve the current command system.
-5. Preserve compatibility with Windows and Linux.
-6. Add tests before or alongside major refactors.
-7. Keep modules separated by responsibility.
-8. Avoid putting all logic into processor.py.
-9. Do not introduce unnecessary external dependencies.
+1. Do not delete existing functionality or rewrite the project from scratch.
+2. Preserve the command system and its user-facing responses.
+3. Preserve the public API and JSON format of `Memory`.
+4. Preserve compatibility with Windows and Linux.
+5. Add or update tests alongside architecture changes.
+6. Keep modules separated by responsibility; `BrainProcessor` coordinates.
+7. Keep the mock LLM usable without the optional OpenAI dependency.
+8. Do not introduce unnecessary external dependencies.
+9. Never store real memory, credentials, test artifacts, caches, or virtual
+   environments in Git.
 10. Explain major architectural changes.
 
-## Refactoring goal
+## Reasoning boundaries
 
-Reduce the responsibility of BrainProcessor.
-
-BrainProcessor should coordinate systems rather than contain
-all business logic.
-
-Target architecture:
-
-User
-↓
-BrainProcessor
-├── Context
-├── Memory
-├── Reasoning
-└── Inference
-↓
-Response
+- `ReasoningEngine` preserves the text-based command flow.
+- `ReasoningResult` is the canonical result contract and retains textual
+  compatibility fields while carrying structured conclusions.
+- `KnowledgeInference` owns inference rule discovery.
+- `ExplainedKnowledgeInference` adds explanation and evidence.
+- `KnowledgeReasoning` coordinates validation, confidence and conflicts for
+  the Cognitive Core.
 
 ## Testing
 
-Every refactor must preserve the behavior of:
-
-- Memory
-- Context
-- Reasoning
-- Inference
-- Logic
-- command processing
-
-Run the existing test suite after modifications.
+Run the complete suite with `pytest`. Tests that persist memory must use
+temporary paths and must not change `data/memory.json`.
 
 ## Git
 
-Do not create commits automatically.
-
-Do not create tags automatically.
-
-Do not push to GitHub automatically.
-
-The human developer will review changes before committing.
+Do not create commits, tags, or pushes unless the human developer explicitly
+requests them.

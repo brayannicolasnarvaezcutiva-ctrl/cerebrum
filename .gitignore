@@ -1,3 +1,7 @@
 __pycache__/
 *.py[cod]
 data/
+.pytest_cache/
+.venv/
+logs/
+*.tmp

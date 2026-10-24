@@ -3,15 +3,15 @@ brain/processor.py
 
 Procesador principal del motor de IA.
 
-v0.0.4 Alpha - Reasoning Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
-from brain.context import Context
-from brain.intents import INTENTS, detect_intent
-from brain.memory_service import MemoryService
-from brain.reasoning import ReasoningEngine
-from brain.reasoning_handler import ReasoningRequestHandler
-from brain.response_formatter import ResponseFormatter
+from .context import Context
+from .intents import INTENTS, detect_intent
+from .memory_service import MemoryService
+from .reasoning import ReasoningEngine
+from .reasoning_handler import ReasoningRequestHandler
+from .response_formatter import ResponseFormatter
 
 
 class BrainProcessor:

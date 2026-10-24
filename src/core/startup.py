@@ -12,13 +12,13 @@ from rich.text import Text
 # ============================================================
 # CEREBRUM
 # Archivo principal
-# Versión: 0.0.2 Alpha - "The Spark"
+# Versión: 0.0.9 Alpha - preparación hacia v0.1.0
 # ============================================================
 
 console = Console()
 
 AI_NAME = "CEREBRUM"
-VERSION = "0.0.2 Alpha"
+VERSION = "0.0.9 Alpha"
 
 
 def banner():

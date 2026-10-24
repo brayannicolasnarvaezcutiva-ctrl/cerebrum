@@ -22,7 +22,8 @@ class ConflictDetector:
 
     def detectar(
         self,
-        conclusion: KnowledgeFact
+        conclusion: KnowledgeFact,
+        ignorar: list[KnowledgeFact] | None = None
     ) -> list[KnowledgeFact]:
         """
         Devuelve hechos que contradicen la conclusión.
@@ -44,6 +45,11 @@ class ConflictDetector:
             relacion=conclusion.relacion
         )
 
+        ignorar = (
+            ignorar
+            if isinstance(ignorar, list)
+            else []
+        )
         conflictos = []
 
         for hecho in hechos:
@@ -56,6 +62,7 @@ class ConflictDetector:
             if (
                 hecho.objeto != conclusion.objeto
                 and hecho != conclusion
+                and hecho not in ignorar
             ):
                 conflictos.append(
                     hecho

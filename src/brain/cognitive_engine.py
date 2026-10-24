@@ -2,7 +2,7 @@
 CEREBRUM
 Coordinador del núcleo cognitivo con trazabilidad e intención.
 
-v0.0.7 Alpha - Cognitive Interaction
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .cognitive_result import CognitiveResult
@@ -12,7 +12,9 @@ from .intent_detector import IntentDetector
 from .knowledge import KnowledgeBase
 from .knowledge_extractor import KnowledgeExtractor
 from .knowledge_reasoner import KnowledgeReasoner
+from .knowledge_reasoning import KnowledgeReasoning
 from .knowledge_trace import KnowledgeTrace
+from .reasoning_result import ReasoningResult
 
 
 class CognitiveEngine:
@@ -33,6 +35,11 @@ class CognitiveEngine:
             self.knowledge_base
         )
 
+        self.reasoning = KnowledgeReasoning(
+            knowledge_base=self.knowledge_base,
+            inference=self.inference
+        )
+
         self.trace = KnowledgeTrace()
 
         self.explainer = InferenceExplanationBuilder()
@@ -40,6 +47,7 @@ class CognitiveEngine:
         self.intent_detector = IntentDetector()
 
         self.ultima_intencion = None
+        self.ultimo_razonamiento = None
 
     def aprender(self, texto: str):
         """Extrae y almacena conocimiento desde una frase."""
@@ -74,14 +82,26 @@ class CognitiveEngine:
     def inferir(self):
         """Genera nuevas conclusiones y registra su trazabilidad."""
 
-        explicaciones = self.inference.inferir_todo()
+        return self.razonar().conclusiones
 
-        for explicacion in explicaciones:
+    def razonar(self) -> ReasoningResult:
+        """Ejecuta la ruta estructurada y conserva su último resultado."""
+
+        resultado = self.reasoning.razonar()
+
+        for explicacion in resultado.conclusiones:
             self.trace.registrar(
                 explicacion
             )
 
-        return explicaciones
+        self.ultimo_razonamiento = resultado
+
+        return resultado
+
+    def obtener_ultimo_razonamiento(self) -> ReasoningResult | None:
+        """Devuelve el resultado estructurado más reciente."""
+
+        return self.ultimo_razonamiento
 
     def explicar_inferencias(self):
         """Devuelve las inferencias en formato legible."""
@@ -176,7 +196,8 @@ class CognitiveEngine:
                 hecho
             )
 
-        inferencias = self.inferir()
+        resultado_razonamiento = self.razonar()
+        inferencias = resultado_razonamiento.conclusiones
 
         evidencia = []
 
@@ -205,11 +226,8 @@ class CognitiveEngine:
                 for hecho in hechos_aprendidos
             )
 
-        elif inferencias:
-            confianza = max(
-                explicacion.conclusion.confianza
-                for explicacion in inferencias
-            )
+        elif resultado_razonamiento.valido:
+            confianza = resultado_razonamiento.confianza
 
         else:
             confianza = 0.0
@@ -220,5 +238,6 @@ class CognitiveEngine:
             inferencias=inferencias,
             evidencia=evidencia,
             confianza=confianza,
-            intencion=intencion
+            intencion=intencion,
+            resultado_razonamiento=resultado_razonamiento
         )

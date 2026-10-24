@@ -2,7 +2,7 @@
 CEREBRUM
 Inferencia sobre conocimiento estructurado.
 
-v0.0.5 Alpha - Cognitive Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .knowledge import KnowledgeBase, KnowledgeFact
@@ -16,20 +16,11 @@ class KnowledgeInference:
         self.knowledge_base = knowledge_base
         self.novelty = NoveltyDetector(knowledge_base)
 
-    def inferir_es(self) -> list[KnowledgeFact]:
-        """
-        Aplica inferencia transitiva sobre la relación 'es'.
-
-        Ejemplo:
-
-            A es B
-            B es C
-            --------
-            A es C
-        """
+    def candidatos_es(self) -> list[tuple[KnowledgeFact, KnowledgeFact, KnowledgeFact]]:
+        """Encuentra cadenas transitivas sin modificar la base de conocimiento."""
 
         hechos = self.knowledge_base.obtener_todo()
-        nuevos = []
+        candidatos = []
 
         for primero in hechos:
             if primero.relacion != "es":
@@ -45,8 +36,7 @@ class KnowledgeInference:
                 if primero.sujeto == segundo.objeto:
                     continue
 
-                # Creamos la posible conclusión sin modificar todavía
-                candidato = KnowledgeFact(
+                conclusion = KnowledgeFact(
                     sujeto=primero.sujeto,
                     relacion="es",
                     objeto=segundo.objeto,
@@ -56,22 +46,37 @@ class KnowledgeInference:
                     )
                 )
 
-                # Solo consideramos la conclusión
-                # si todavía no estaba almacenada.
-                if not self.knowledge_base.existe(
-                    sujeto=candidato.sujeto,
-                    relacion=candidato.relacion,
-                    objeto=candidato.objeto
-                ):
-                    nuevo = self.knowledge_base.agregar(
-                        sujeto=candidato.sujeto,
-                        relacion=candidato.relacion,
-                        objeto=candidato.objeto,
-                        confianza=candidato.confianza
-                    )
+                candidatos.append((primero, segundo, conclusion))
 
-                    if nuevo is not None and nuevo not in nuevos:
-                        nuevos.append(nuevo)
+        return candidatos
+
+    def inferir_es(self) -> list[KnowledgeFact]:
+        """
+        Aplica inferencia transitiva sobre la relación 'es'.
+
+        Ejemplo:
+
+            A es B
+            B es C
+            --------
+            A es C
+        """
+
+        nuevos = []
+
+        for _, _, candidato in self.candidatos_es():
+            if not self.novelty.es_nuevo(candidato):
+                continue
+
+            nuevo = self.knowledge_base.agregar(
+                sujeto=candidato.sujeto,
+                relacion=candidato.relacion,
+                objeto=candidato.objeto,
+                confianza=candidato.confianza
+            )
+
+            if nuevo is not None and nuevo not in nuevos:
+                nuevos.append(nuevo)
 
         return nuevos
 

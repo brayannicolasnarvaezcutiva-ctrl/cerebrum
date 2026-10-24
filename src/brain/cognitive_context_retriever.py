@@ -2,7 +2,7 @@
 CEREBRUM
 Recuperación de contexto cognitivo relevante.
 
-v0.0.8 Alpha - Memory Bridge
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .cognitive_context_selector import CognitiveContextSelector
@@ -43,7 +43,8 @@ class CognitiveContextRetriever:
     def recuperar(
         self,
         intencion,
-        conversacion: str = ""
+        conversacion: str = "",
+        resultado_razonamiento=None
     ) -> dict:
         """
         Recupera contexto según la intención.
@@ -172,11 +173,13 @@ class CognitiveContextRetriever:
             "razonamiento",
             False
         ):
-            inferencias = (
-                self.cognitive_engine
-                .inference
-                .inferir_todo()
+            resultado_razonamiento = (
+                resultado_razonamiento
+                or self.cognitive_engine.obtener_ultimo_razonamiento()
+                or self.cognitive_engine.razonar()
             )
+
+            inferencias = resultado_razonamiento.conclusiones
 
             resultado["razonamiento"] = [
                 f"{inferencia.conclusion.sujeto} "

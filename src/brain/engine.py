@@ -4,7 +4,7 @@ brain/engine.py
 Motor principal de CEREBRUM.
 """
 
-from brain.processor import BrainProcessor
+from .processor import BrainProcessor
 
 
 class BrainEngine:

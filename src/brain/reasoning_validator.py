@@ -101,6 +101,44 @@ class ReasoningValidator:
                 "tipo": "sin_resultado"
             }
 
+        conclusiones = getattr(resultado, "conclusiones", None)
+
+        if isinstance(conclusiones, list) and conclusiones:
+            validaciones = [
+                self.validar(
+                    conclusion=getattr(explicacion, "conclusion", None),
+                    evidencias=getattr(explicacion, "evidencias", None)
+                )
+                for explicacion in conclusiones
+            ]
+
+            confianzas = [
+                validacion["confianza"]
+                for validacion in validaciones
+                if validacion["valida"]
+            ]
+            confianza = (
+                sum(confianzas) / len(confianzas)
+                if confianzas
+                else 0.0
+            )
+
+            if getattr(resultado, "tiene_conflicto", False):
+                return {
+                    "valida": False,
+                    "confianza": confianza,
+                    "tipo": "con_conflicto"
+                }
+
+            return {
+                "valida": bool(validaciones) and all(
+                    validacion["valida"]
+                    for validacion in validaciones
+                ),
+                "confianza": confianza,
+                "tipo": "resultado_estructurado"
+            }
+
         if not hasattr(
             resultado,
             "conclusion"

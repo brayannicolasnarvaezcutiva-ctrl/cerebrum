@@ -2,13 +2,13 @@
 CEREBRUM
 Manejador de solicitudes de razonamiento.
 
-v0.0.4 Alpha - Reasoning Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from dataclasses import dataclass
 
-from brain.memory_service import MemoryService
-from brain.reasoning import ReasoningEngine
+from .memory_service import MemoryService
+from .reasoning import ReasoningEngine
 
 
 @dataclass

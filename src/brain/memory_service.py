@@ -2,17 +2,23 @@
 CEREBRUM
 Política de memoria de la capa de aplicación.
 
-v0.0.4 Alpha - Reasoning Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
-from brain.memory import Memory
+from .memory import Memory
+from .memory_policy import MemoryPolicy
 
 
 class MemoryService:
     """Coordina la política de memoria sobre un almacenamiento Memory."""
 
-    def __init__(self, memory=None):
+    def __init__(self, memory=None, memory_policy=None):
         self.memory = memory if memory is not None else Memory()
+        self.memory_policy = (
+            memory_policy
+            if memory_policy is not None
+            else MemoryPolicy()
+        )
 
     def clasificar_memoria(self, text: str):
         """Determina el tipo de información."""
@@ -111,22 +117,9 @@ class MemoryService:
     def guardar_si_importante(self, text: str):
         """Guarda automáticamente información importante."""
 
-        tipo = self.clasificar_memoria(text)
-
-        if tipo == "general":
-            return None
-
-        contenido = self.extraer_contenido(text)
-
-        if not contenido:
-            return None
-
-        importancia = self.calcular_importancia(tipo)
-
-        return self.memory.guardar(
-            contenido,
-            tipo=tipo,
-            importancia=importancia
+        return self.memory_policy.guardar_si_corresponde(
+            self,
+            text
         )
 
     def guardar_manualmente(self, contenido):

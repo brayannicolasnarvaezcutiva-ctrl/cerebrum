@@ -2,7 +2,7 @@
 CEREBRUM
 Puente entre el sistema de memoria y el núcleo cognitivo.
 
-v0.0.8 Alpha - Memory Bridge
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .memory_policy import MemoryPolicy
@@ -29,14 +29,16 @@ class MemoryBridge:
         memory_policy: MemoryPolicy | None = None,
         memory_ranker: MemoryRanker | None = None
     ):
-        self.memory_service = (
-            memory_service
-            or MemoryService()
-        )
-
         self.memory_policy = (
             memory_policy
             or MemoryPolicy()
+        )
+
+        self.memory_service = (
+            memory_service
+            or MemoryService(
+                memory_policy=self.memory_policy
+            )
         )
 
         self.memory_ranker = (

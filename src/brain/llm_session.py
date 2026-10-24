@@ -42,6 +42,17 @@ class LLMSession:
             contenido
         )
 
+    def retirar_ultimo_usuario(
+        self,
+        contenido: str
+    ):
+        """Revierte un turno de usuario que no llegó a completarse."""
+
+        return self.conversation.retirar_ultimo(
+            rol="usuario",
+            contenido=contenido
+        )
+
     def obtener_historial(self):
         """Devuelve todos los mensajes de la sesión."""
 

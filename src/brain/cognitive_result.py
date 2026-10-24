@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from .inference_explanation import InferenceExplanation
 from .intent import Intent
 from .knowledge import KnowledgeFact
+from .reasoning_result import ReasoningResult
 
 
 @dataclass
@@ -33,6 +34,8 @@ class CognitiveResult:
     confianza: float = 0.0
 
     intencion: Intent | None = None
+
+    resultado_razonamiento: ReasoningResult | None = None
 
     @property
     def tuvo_aprendizaje(self) -> bool:
@@ -112,6 +115,12 @@ class CognitiveResult:
                 + "; ".join(
                     self.evidencia
                 )
+            )
+
+        if self.resultado_razonamiento is not None:
+            partes.append(
+                "Conflictos de razonamiento: "
+                f"{self.resultado_razonamiento.cantidad_conflictos}"
             )
 
         return "\n".join(

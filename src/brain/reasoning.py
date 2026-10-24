@@ -2,21 +2,11 @@
 CEREBRUM
 Motor de razonamiento.
 
-v0.0.4 Alpha - Reasoning Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
-from dataclasses import dataclass
-
 from .inference import InferenceEngine
-
-
-@dataclass
-class ReasoningResult:
-    """Resultado de un proceso de razonamiento."""
-
-    conclusion: str
-    evidencia: list[str]
-    confianza: float
+from .reasoning_result import ReasoningResult
 
 
 class ReasoningEngine:
@@ -132,7 +122,8 @@ class ReasoningEngine:
         resultado = ReasoningResult(
             conclusion=inferencia["conclusion"],
             evidencia=evidencia,
-            confianza=confianza
+            confianza=confianza,
+            valido=confianza > 0.0
         )
 
         self.last_result = resultado
@@ -192,7 +183,8 @@ class ReasoningEngine:
         resultado = ReasoningResult(
             conclusion=inferencia["conclusion"],
             evidencia=evidencia,
-            confianza=inferencia["confianza"]
+            confianza=inferencia["confianza"],
+            valido=inferencia["confianza"] > 0.0
         )
 
         self.last_result = resultado

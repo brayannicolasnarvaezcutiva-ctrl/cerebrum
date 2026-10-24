@@ -2,14 +2,13 @@
 CEREBRUM
 Proveedor OpenAI para el LLM Core.
 
-v0.0.6 Alpha - LLM Core
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 import os
 
-from openai import OpenAI
-
 from .llm import LLMRequest, LLMResponse
+from .llm_errors import LLMConfigurationError
 
 
 class OpenAIProvider:
@@ -37,6 +36,13 @@ class OpenAIProvider:
             raise ValueError(
                 "No se encontró OPENAI_API_KEY."
             )
+
+        try:
+            from openai import OpenAI
+        except ImportError as error:
+            raise LLMConfigurationError(
+                "El proveedor OpenAI requiere instalar el extra 'openai'."
+            ) from error
 
         self.client = OpenAI(
             api_key=self.api_key

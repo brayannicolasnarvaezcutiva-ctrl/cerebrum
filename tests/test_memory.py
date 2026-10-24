@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from src.brain.memory import Memory, MemoryCorruptionError
+from brain.memory import Memory, MemoryCorruptionError
 
 
 class TestMemory(unittest.TestCase):
@@ -218,7 +218,7 @@ class TestMemory(unittest.TestCase):
         )
 
         with patch(
-            "src.brain.memory.os.replace",
+            "brain.memory.os.replace",
             side_effect=OSError("fallo de reemplazo")
         ):
             with self.assertRaises(OSError):

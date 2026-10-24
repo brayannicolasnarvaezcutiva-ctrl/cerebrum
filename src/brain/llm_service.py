@@ -2,7 +2,7 @@
 CEREBRUM
 Servicio de alto nivel para interacción con el LLM.
 
-v0.0.7 Alpha - Cognitive Interaction
+v0.0.9 Alpha — preparación hacia v0.1.0
 """
 
 from .intent import Intent
@@ -94,50 +94,57 @@ class LLMService:
             mensaje
         )
 
-        contexto_conversacional = (
-            self.session.obtener_contexto()
-        )
-
-        contexto = self.context_builder.construir(
-            mensaje=mensaje,
-            memoria=memoria,
-            conocimiento=conocimiento,
-            razonamiento=razonamiento,
-            conversacion=contexto_conversacional,
-            intencion=intencion
-        )
-
-        request = LLMRequest(
-            contexto=contexto,
-            temperatura=self.engine.config.temperatura
-        )
-
-        if not request.es_valida():
-            raise LLMResponseError(
-                "La solicitud LLM no contiene un contexto válido."
-            )
-
         try:
-            respuesta = self.engine.generar(
-                request
+            contexto_conversacional = (
+                self.session.obtener_contexto()
             )
 
-        except LLMProviderError:
-
-            if not self.fallback_enabled:
-                raise
-
-            fallback_engine = self._crear_fallback()
-
-            respuesta = fallback_engine.generar(
-                request
+            contexto = self.context_builder.construir(
+                mensaje=mensaje,
+                memoria=memoria,
+                conocimiento=conocimiento,
+                razonamiento=razonamiento,
+                conversacion=contexto_conversacional,
+                intencion=intencion
             )
 
-        self.session.agregar_asistente(
-            respuesta.contenido
-        )
+            request = LLMRequest(
+                contexto=contexto,
+                temperatura=self.engine.config.temperatura
+            )
 
-        return respuesta
+            if not request.es_valida():
+                raise LLMResponseError(
+                    "La solicitud LLM no contiene un contexto válido."
+                )
+
+            try:
+                respuesta = self.engine.generar(
+                    request
+                )
+
+            except LLMProviderError:
+
+                if not self.fallback_enabled:
+                    raise
+
+                fallback_engine = self._crear_fallback()
+
+                respuesta = fallback_engine.generar(
+                    request
+                )
+
+            self.session.agregar_asistente(
+                respuesta.contenido
+            )
+
+            return respuesta
+
+        except Exception:
+            self.session.retirar_ultimo_usuario(
+                mensaje
+            )
+            raise
 
     def generar_texto(
         self,
